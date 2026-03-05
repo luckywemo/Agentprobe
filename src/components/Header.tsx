@@ -19,36 +19,24 @@ export function Header() {
 
     return (
         <header className="header">
-            <div className="header-inner">
+            <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
                 <Link href="/" className="logo">
                     <span className="logo-icon">⬢</span>
                     <span className="logo-text">AgentProbe</span>
                 </Link>
-                <nav className="nav-links">
+                <nav className="hidden md:flex gap-2">
                     <Link href="/campaigns" className="nav-link">Marketplace</Link>
                     <Link href="/dashboard" className="nav-link">Founder</Link>
                     <Link href="/bot-hub" className="nav-link">Bot Hub</Link>
                     <Link href="/wallet" className="nav-link">Wallet</Link>
                 </nav>
-                <div className="header-actions">
+                <div className="flex items-center gap-4">
                     {userId ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
-                                    {userId}
-                                </div>
+                        <div className="flex items-center gap-3 md:gap-5">
+                            <div className="flex flex-col items-end">
+                                <div className="text-sm font-bold truncate max-w-[80px] sm:max-w-xs">{userId}</div>
                                 {role && (
-                                    <div style={{
-                                        fontSize: '0.625rem',
-                                        fontWeight: 800,
-                                        textTransform: 'uppercase',
-                                        padding: '1px 6px',
-                                        borderRadius: '4px',
-                                        background: role === 'founder' ? 'rgba(0, 82, 255, 0.1)' : 'rgba(0, 212, 255, 0.1)',
-                                        color: role === 'founder' ? 'var(--accent)' : '#00d4ff',
-                                        letterSpacing: '0.05em',
-                                        marginTop: '2px'
-                                    }}>
+                                    <div className={`text-[10px] font-extrabold uppercase px-1.5 py-[1px] rounded tracking-wide mt-0.5 ${role === 'founder' ? 'bg-blue-500/10 text-blue-500' : 'bg-cyan-500/10 text-cyan-500'}`}>
                                         {role === 'bot-hub' ? 'Bot Owner' : 'Founder'}
                                     </div>
                                 )}
@@ -60,15 +48,22 @@ export function Header() {
                                     localStorage.removeItem('agentprobe_role');
                                     window.location.href = '/';
                                 }}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500 }}
+                                className="text-xs font-medium text-zinc-500 hover:text-white transition-colors"
                             >
                                 Logout
                             </button>
                         </div>
                     ) : (
-                        <Link href="/dashboard" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Login</Link>
+                        <Link href="/dashboard" className="btn btn-primary text-sm px-4 py-2">Login</Link>
                     )}
                 </div>
+            </div>
+            {/* Mobile Nav Bar underneath */}
+            <div className="md:hidden flex overflow-x-auto gap-2 px-4 py-2 border-t border-zinc-800 bg-black/40 text-sm whitespace-nowrap scrollbar-hide">
+                <Link href="/campaigns" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Marketplace</Link>
+                <Link href="/dashboard" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Founder</Link>
+                <Link href="/bot-hub" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Bot Hub</Link>
+                <Link href="/wallet" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Wallet</Link>
             </div>
         </header>
     );

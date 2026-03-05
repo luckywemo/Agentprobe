@@ -212,58 +212,57 @@ export default function DashboardPage() {
     return (
         <div className="page-container">
             {/* Header */}
-            <div className="page-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div className="page-header flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-12">
                 <div>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.04em' }}>Founder Dashboard</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Manage your campaigns and review agent performance.</p>
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Founder Dashboard</h1>
+                    <p className="text-zinc-400 mt-1">Manage your campaigns and review agent performance.</p>
                 </div>
-                <Link href="/campaigns/create" className="btn btn-primary">+ Create New Campaign</Link>
+                <Link href="/campaigns/create" className="btn btn-primary w-full md:w-auto text-center">+ Create New Campaign</Link>
             </div>
 
-            {/* Wallet & Stats Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '3rem' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                 {/* Managed Wallet Card */}
-                <div className="card glass-card" style={{ padding: '2rem', border: '1px solid var(--accent)', background: 'rgba(0, 82, 255, 0.03)' }}>
+                <div className="card glass-card p-8 lg:col-span-1" style={{ border: '1px solid var(--accent)', background: 'rgba(0, 82, 255, 0.03)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                         <span style={{ fontSize: '1.5rem' }}>🏦</span>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Managed Platform Wallet</h3>
+                        <h3 className="text-base font-extrabold">Managed Platform Wallet</h3>
                     </div>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    <p className="text-sm text-zinc-400 mb-5">
                         This is your inbuilt wallet. Deposit **USDC on Base** to fund your campaigns.
                     </p>
-                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--accent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{walletAddress}</span>
+                    <div className="bg-black/20 p-3 rounded-md text-xs font-mono text-blue-500 flex justify-between items-center mb-4">
+                        <span className="truncate mr-2">{walletAddress}</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText(walletAddress!);
                                 alert('Wallet address copied to clipboard!');
                             }}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginLeft: '0.5rem' }}
+                            className="bg-transparent border-none text-zinc-500 hover:text-white cursor-pointer"
                             title="Copy Address"
                         >
                             📋
                         </button>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.5rem' }}>
+                    <div className="text-xl font-extrabold text-white mb-2">
                         {parseFloat(balance).toFixed(2)} USDC
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div className="text-xs text-zinc-500">
                         <strong>Network:</strong> Base Mainnet
                     </div>
                 </div>
 
                 {/* Stats Row */}
-                <div className="stats-row" style={{ height: '100%' }}>
-                    <div className="card">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:col-span-2 h-full">
+                    <div className="card h-full flex flex-col justify-center">
                         <div className="stat-value">{campaigns.length}</div>
                         <div className="stat-label">Total Campaigns</div>
                     </div>
-                    <div className="card">
+                    <div className="card h-full flex flex-col justify-center">
                         <div className="stat-value">{submissions.length}</div>
                         <div className="stat-label">Pending Reviews</div>
                     </div>
-                    <div className="card">
-                        <div className="stat-value">
+                    <div className="card h-full flex flex-col justify-center sm:col-span-2 lg:col-span-1">
+                        <div className="stat-value truncate">
                             ${campaigns.reduce((sum, c) => sum + (c.remaining_budget || 0), 0).toFixed(2)}
                         </div>
                         <div className="stat-label">Remaining Budget</div>
@@ -271,37 +270,37 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Campaigns List */}
-                <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Your Campaigns</h2>
+                <div className="lg:col-span-2">
+                    <h2 className="text-2xl font-bold mb-6">Your Campaigns</h2>
                     {loading ? (
-                        <div className="card glass-card" style={{ textAlign: 'center', padding: '4rem' }}>
-                            <div className="loading-spinner" />
+                        <div className="card glass-card text-center p-16">
+                            <div className="loading-spinner mx-auto" />
                         </div>
                     ) : campaigns.length === 0 ? (
-                        <div className="card glass-card" style={{ textAlign: 'center', padding: '4rem' }}>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>You haven&apos;t launched any campaigns yet.</p>
+                        <div className="card glass-card text-center p-16">
+                            <p className="text-zinc-400 mb-6">You haven&apos;t launched any campaigns yet.</p>
                             <Link href="/campaigns/create" className="btn btn-secondary">Create Your First Campaign</Link>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="flex flex-col gap-4">
                             {campaigns.map(camp => (
-                                <div key={camp.id} className="card glass-card animate-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem' }}>
-                                    <div>
-                                        <h3 style={{ fontWeight: 700, fontSize: '1.125rem' }}>{camp.name}</h3>
-                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                                <div key={camp.id} className="card glass-card animate-in flex flex-col md:flex-row justify-between items-start md:items-center p-6 gap-4">
+                                    <div className="w-full md:w-auto">
+                                        <h3 className="font-bold text-lg">{camp.name}</h3>
+                                        <p className="text-sm text-zinc-500 mt-1">
                                             Reward: ${camp.reward_per_task} per task · Status: <span style={{ color: camp.status === 'active' ? 'var(--accent)' : 'var(--warning)' }}>{camp.status}</span>
                                         </p>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                        <div style={{ textAlign: 'right', marginRight: '1rem' }}>
-                                            <div style={{ fontWeight: 600, fontSize: '1rem' }}>${camp.remaining_budget.toFixed(2)}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Budget Left</div>
+                                    <div className="flex justify-between w-full md:w-auto md:justify-end gap-4 items-center border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0 mt-2 md:mt-0">
+                                        <div className="text-right md:mr-4">
+                                            <div className="font-semibold text-base">${camp.remaining_budget.toFixed(2)}</div>
+                                            <div className="text-xs text-zinc-500">Budget Left</div>
                                         </div>
                                         <button
                                             onClick={() => handleDeleteCampaign(camp.id)}
-                                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '1rem', padding: '0.5rem' }}
+                                            className="bg-transparent border-none text-red-500 cursor-pointer text-base p-2 hover:bg-red-500/10 rounded"
                                             title="Delete Campaign"
                                         >
                                             🗑️
@@ -314,7 +313,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Quick Reviews Sidebar */}
-                <div>
+                <div className="lg:col-span-1">
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Review Hub</h2>
                     {submissions.length === 0 ? (
                         <div className="card glass-card" style={{ textAlign: 'center', padding: '2rem' }}>

@@ -88,95 +88,82 @@ export default function WalletPage() {
                 <p style={{ color: 'var(--text-secondary)' }}>Manage your managed assets on Base network.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
+            <div className="flex flex-col lg:flex-row gap-8">
                 {/* Balance Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div className="card glass-card" style={{ padding: '2rem', position: 'relative', overflow: 'hidden' }}>
-                        <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '5rem', opacity: 0.05 }}>💎</div>
-                        <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1rem' }}>ETH Balance</h3>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.25rem' }}>
-                            {loading ? '...' : balances?.eth || '0.00'} <span style={{ fontSize: '1rem', fontWeight: 600 }}>ETH</span>
+                <div className="flex flex-col gap-6 lg:w-2/5">
+                    <div className="card glass-card relative overflow-hidden p-8">
+                        <div className="absolute -top-2 -right-2 text-7xl opacity-5">💎</div>
+                        <h3 className="text-sm font-bold text-zinc-500 uppercase mb-4 tracking-wider">ETH Balance</h3>
+                        <div className="text-4xl font-extrabold mb-1">
+                            {loading ? '...' : balances?.eth || '0.00'} <span className="text-lg font-semibold">ETH</span>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Base Network Native</div>
+                        <div className="text-xs text-zinc-500">Base Network Native</div>
                     </div>
 
-                    <div className="card glass-card" style={{ padding: '2rem', border: '1px solid rgba(0, 82, 255, 0.2)', background: 'linear-gradient(135deg, rgba(0, 82, 255, 0.05) 0%, rgba(0, 0, 0, 0) 100%)', position: 'relative', overflow: 'hidden' }}>
-                        <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '5rem', opacity: 0.05 }}>💵</div>
-                        <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1rem' }}>USDC Balance</h3>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent)', marginBottom: '0.25rem' }}>
-                            {loading ? '...' : balances?.usdc || '0.00'} <span style={{ fontSize: '1rem', fontWeight: 600 }}>USDC</span>
+                    <div className="card glass-card relative overflow-hidden p-8 border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
+                        <div className="absolute -top-2 -right-2 text-7xl opacity-5">💵</div>
+                        <h3 className="text-sm font-bold text-zinc-500 uppercase mb-4 tracking-wider">USDC Balance</h3>
+                        <div className="text-4xl font-extrabold text-blue-500 mb-1">
+                            {loading ? '...' : balances?.usdc || '0.00'} <span className="text-lg font-semibold text-white">USDC</span>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Circle Bridged USDC (Base)</div>
+                        <div className="text-xs text-zinc-500">Circle Bridged USDC (Base)</div>
                     </div>
 
-                    <div className="card glass-card" style={{ padding: '1.5rem' }}>
-                        <h4 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Your Managed Address</h4>
-                        <div style={{ 
-                            background: 'rgba(255,255,255,0.03)', 
-                            padding: '0.75rem', 
-                            borderRadius: '6px', 
-                            fontSize: '0.8125rem', 
-                            fontFamily: 'monospace',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            wordBreak: 'break-all'
-                        }}>
-                            {balances?.address || walletAddress}
+                    <div className="card glass-card p-6">
+                        <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3 tracking-wider">Your Managed Address</h4>
+                        <div className="bg-white/5 p-3 rounded-md text-xs sm:text-sm font-mono flex justify-between items-center break-all">
+                            <span className="truncate mr-2">{balances?.address || walletAddress}</span>
                             <button 
                                 onClick={() => navigator.clipboard.writeText(balances?.address || walletAddress || '')}
-                                style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', marginLeft: '0.5rem' }}
+                                className="bg-transparent border-none text-blue-500 cursor-pointer hover:text-white transition-colors"
                             >
                                 📋
                             </button>
                         </div>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+                        <p className="text-xs text-zinc-500 mt-3 italic">
                             Deposit assets here to fund campaigns or pay gas fees.
                         </p>
                     </div>
                 </div>
 
                 {/* Transfer Form */}
-                <div className="card glass-card" style={{ padding: '2.5rem' }}>
-                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '2rem' }}>Send Funds</h3>
+                <div className="card glass-card p-8 lg:w-3/5">
+                    <h3 className="text-2xl font-bold mb-8">Send Funds</h3>
                     
-                    <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <form onSubmit={handleSend} className="flex flex-col gap-6">
                         <div className="form-group">
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Recipient Address</label>
+                            <label className="block text-sm font-bold mb-2">Recipient Address</label>
                             <input 
                                 type="text"
-                                className="input-field"
+                                className="input-field w-full"
                                 placeholder="0x..."
                                 value={recipient}
                                 onChange={(e) => setRecipient(e.target.value)}
-                                style={{ width: '100%' }}
                                 required
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Asset</label>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="form-group sm:w-1/3">
+                                <label className="block text-sm font-bold mb-2">Asset</label>
                                 <select 
-                                    className="input-field"
+                                    className="input-field w-full appearance-none"
                                     value={asset}
                                     onChange={(e) => setAsset(e.target.value as 'ETH' | 'USDC')}
-                                    style={{ width: '100%', appearance: 'none' }}
                                 >
                                     <option value="USDC">USDC</option>
                                     <option value="ETH">ETH</option>
                                 </select>
                             </div>
-                            <div className="form-group">
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Amount</label>
+                            <div className="form-group sm:w-2/3">
+                                <label className="block text-sm font-bold mb-2">Amount</label>
                                 <input 
                                     type="number"
                                     step="any"
-                                    className="input-field"
+                                    className="input-field w-full"
                                     placeholder="0.00"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
-                                    style={{ width: '100%' }}
                                     required
                                 />
                             </div>

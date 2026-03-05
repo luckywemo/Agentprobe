@@ -81,57 +81,46 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
     return (
         <div className="page-container animate-in">
-            <div className="page-header" style={{ marginBottom: '3rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.04em' }}>{campaign.name}</h1>
-                    <span className={`badge ${campaign.status === 'active' ? 'badge-success' : 'badge-pending'}`}>
+            <div className="page-header mb-12">
+                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-3">
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{campaign.name}</h1>
+                    <span className={`badge w-fit ${campaign.status === 'active' ? 'badge-success' : 'badge-pending'}`}>
                         {campaign.status}
                     </span>
                 </div>
-                <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', maxWidth: '700px' }}>
+                <p className="text-lg text-zinc-400 max-w-2xl leading-relaxed">
                     {campaign.description || 'Campaign details and agent performance metrics.'}
                 </p>
             </div>
 
             {/* Pro-Tech Stats Grid */}
-            <div className="stats-row" style={{ marginBottom: '3rem' }}>
-                <div className="card">
-                    <div className="stat-value" style={{ color: 'var(--success)' }}>{completedTasks}</div>
-                    <div className="stat-label">Tasks Completed</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                <div className="card text-center p-4 md:p-6">
+                    <div className="text-2xl md:text-3xl font-black text-green-500 mb-2">{completedTasks}</div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Tasks Completed</div>
                 </div>
-                <div className="card">
-                    <div className="stat-value">{totalTasks - completedTasks}</div>
-                    <div className="stat-label">Remaining</div>
+                <div className="card text-center p-4 md:p-6">
+                    <div className="text-2xl md:text-3xl font-black mb-2">{totalTasks - completedTasks}</div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Remaining</div>
                 </div>
-                <div className="card">
-                    <div className="stat-value" style={{ color: 'var(--accent)' }}>${campaign.remaining_budget}</div>
-                    <div className="stat-label">USDC Available</div>
+                <div className="card text-center p-4 md:p-6">
+                    <div className="text-2xl md:text-3xl font-black text-blue-500 mb-2">${campaign.remaining_budget}</div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">USDC Available</div>
                 </div>
-                <div className="card">
-                    <div className="stat-value">{campaign.reward_per_task}</div>
-                    <div className="stat-label">USDC Per Task</div>
+                <div className="card text-center p-4 md:p-6">
+                    <div className="text-2xl md:text-3xl font-black mb-2">{campaign.reward_per_task}</div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">USDC Per Task</div>
                 </div>
             </div>
 
-            {/* Navigation Tabs (Sharp) */}
-            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border)' }}>
+            {/* Navigation Tabs */}
+            <div className="flex overflow-x-auto gap-6 mb-10 border-b border-zinc-800 scrollbar-hide">
                 {(['overview', 'submissions'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-muted)',
-                            padding: '1rem 0',
-                            cursor: 'pointer',
-                            borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            transition: 'all 0.2s'
-                        }}
+                        className={`pb-4 text-sm font-bold uppercase tracking-wider whitespace-nowrap transition-colors border-b-2
+                            ${activeTab === tab ? 'text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
                     >
                         {tab}
                     </button>
@@ -141,47 +130,41 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             {/* Overview tab */}
             {activeTab === 'overview' && (
                 <div className="animate-in">
-                    <div className="card" style={{ marginBottom: '2rem', background: 'var(--bg-secondary)', borderStyle: 'dashed' }}>
-                        <h3 className="form-label" style={{ marginBottom: '1rem' }}>Product Target</h3>
+                    <div className="card bg-zinc-900 border-dashed border-zinc-700 mb-8">
+                        <h3 className="form-label mb-4">Product Target</h3>
                         <a
                             href={campaign.product_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn btn-secondary"
-                            style={{ width: 'fit-content' }}
+                            className="btn btn-secondary w-full sm:w-fit justify-center"
                         >
                             Visit Product URL →
                         </a>
                     </div>
 
-                    <h3 className="form-label" style={{ marginBottom: '1.5rem' }}>Active Tasks ({campaign.tasks?.length || 0})</h3>
-                    <div className="card-grid">
+                    <h3 className="text-lg font-bold mb-6">Active Tasks ({campaign.tasks?.length || 0})</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {campaign.tasks?.map((task) => (
-                            <div key={task.id} className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                    <h4 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{task.title}</h4>
-                                    <span className={`badge ${task.status === 'open' ? 'badge-success' : 'badge-pending'}`} style={{ fontSize: '0.625rem' }}>
+                            <div key={task.id} className="card flex flex-col">
+                                <div className="flex justify-between items-start mb-4 gap-2">
+                                    <h4 className="text-lg font-bold">{task.title}</h4>
+                                    <span className={`badge whitespace-nowrap text-[10px] ${task.status === 'open' ? 'badge-success' : 'badge-pending'}`}>
                                         {task.status}
                                     </span>
                                 </div>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', flex: 1, lineHeight: 1.6 }}>
+                                <p className="text-sm text-zinc-400 mb-6 flex-1 leading-relaxed">
                                     {task.instructions || 'Standard verification workflow.'}
                                 </p>
 
-                                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                <div className="border-t border-zinc-800 pt-4 mt-auto">
+                                    <div className="flex justify-between text-xs font-semibold text-zinc-500 mb-2">
                                         <span>PROGRESS</span>
-                                        <span style={{ color: 'var(--text-secondary)' }}>{task.completions_count} / {task.max_completions}</span>
+                                        <span className="text-zinc-400">{task.completions_count} / {task.max_completions}</span>
                                     </div>
-                                    <div style={{ height: '6px', background: 'var(--bg-secondary)', borderRadius: '3px', overflow: 'hidden' }}>
+                                    <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
                                         <div
-                                            style={{
-                                                height: '100%',
-                                                width: `${(task.completions_count / task.max_completions) * 100}%`,
-                                                background: 'var(--accent)',
-                                                borderRadius: '3px',
-                                                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
-                                            }}
+                                            className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out"
+                                            style={{ width: `${(task.completions_count / task.max_completions) * 100}%` }}
                                         />
                                     </div>
                                 </div>
@@ -195,44 +178,44 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             {activeTab === 'submissions' && (
                 <div className="animate-in">
                     {submissions.length === 0 ? (
-                        <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>📋</div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Waiting for Data</h3>
-                            <p style={{ color: 'var(--text-secondary)' }}>Agents haven&apos;t submitted any traces for this campaign yet.</p>
+                        <div className="card text-center p-20">
+                            <div className="text-5xl mb-6">📋</div>
+                            <h3 className="text-xl font-bold mb-2">Waiting for Data</h3>
+                            <p className="text-zinc-400">Agents haven&apos;t submitted any traces for this campaign yet.</p>
                         </div>
                     ) : (
-                        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-                                <thead style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div className="card p-0 overflow-x-auto">
+                            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+                                <thead className="bg-zinc-900 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
                                     <tr>
-                                        <th style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>Agent Wallet</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>Status</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>Performance</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>Date</th>
+                                        <th className="px-6 py-5 font-semibold">Agent Wallet</th>
+                                        <th className="px-6 py-5 font-semibold">Status</th>
+                                        <th className="px-6 py-5 font-semibold">Performance</th>
+                                        <th className="px-6 py-5 font-semibold">Date</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-zinc-800">
                                     {submissions.map((sub) => (
-                                        <tr key={sub.id} style={{ borderTop: '1px solid var(--border)' }}>
-                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                        <tr key={sub.id} className="hover:bg-zinc-900/50 transition-colors">
+                                            <td className="px-6 py-5 font-bold text-white">
                                                 {sub.agent_wallet.slice(0, 10)}...
                                             </td>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <td className="px-6 py-5">
                                                 <span className={`badge ${sub.status === 'approved' ? 'badge-success' : sub.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`}>
                                                     {sub.status}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <div style={{ background: 'var(--bg-secondary)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>
-                                                        <span style={{ color: 'var(--text-muted)' }}>UX:</span> <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{sub.feedback.scores.usability}</span>
+                                            <td className="px-6 py-5">
+                                                <div className="flex gap-2">
+                                                    <div className="bg-zinc-900 px-3 py-1 rounded text-xs">
+                                                        <span className="text-zinc-500">UX:</span> <span className="text-blue-500 font-bold">{sub.feedback.scores.usability}</span>
                                                     </div>
-                                                    <div style={{ background: 'var(--bg-secondary)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>
-                                                        <span style={{ color: 'var(--text-muted)' }}>SPD:</span> <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{sub.feedback.scores.speed}</span>
+                                                    <div className="bg-zinc-900 px-3 py-1 rounded text-xs">
+                                                        <span className="text-zinc-500">SPD:</span> <span className="text-blue-500 font-bold">{sub.feedback.scores.speed}</span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>
+                                            <td className="px-6 py-5 text-zinc-400">
                                                 {new Date(sub.created_at).toLocaleDateString()}
                                             </td>
                                         </tr>

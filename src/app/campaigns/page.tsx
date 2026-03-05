@@ -28,18 +28,18 @@ export default function CampaignsPage() {
 
     return (
         <div className="page-container animate-in">
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+            <div className="page-header flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-12">
                 <div>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.04em' }}>Marketplace</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Discover and fund decentralized testing cycles.</p>
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Marketplace</h1>
+                    <p className="text-zinc-400 mt-1">Discover and fund decentralized testing cycles.</p>
                 </div>
-                <Link href="/campaigns/create" className="btn btn-primary">
+                <Link href="/campaigns/create" className="btn btn-primary w-full md:w-auto text-center">
                     New Campaign
                 </Link>
             </div>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '5rem' }}>
+                <div className="text-center p-20">
                     <div className="loading-spinner" />
                 </div>
             ) : campaigns.length === 0 ? (
@@ -52,7 +52,7 @@ export default function CampaignsPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="card-grid">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {campaigns.map((campaign) => {
                         const totalTasks = campaign.tasks?.reduce((sum, t) => sum + t.max_completions, 0) || 0;
                         const completedTasks = campaign.tasks?.reduce((sum, t) => sum + t.completions_count, 0) || 0;
@@ -63,52 +63,46 @@ export default function CampaignsPage() {
                             <Link
                                 key={campaign.id}
                                 href={`/campaigns/${campaign.id}`}
-                                style={{ textDecoration: 'none' }}
-                                className="card-link"
+                                className="card-link no-underline"
                             >
-                                <div className="card h-full" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div className="card h-full flex flex-col cursor-pointer transition-transform hover:-translate-y-1">
+                                    <div className="flex justify-between items-center mb-5">
                                         <span className={`badge ${isActive ? 'badge-success' : 'badge-pending'}`}>
                                             {campaign.status}
                                         </span>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)' }}>
+                                        <span className="text-xs font-bold text-blue-500">
                                             {campaign.reward_per_task} USDC / TASK
                                         </span>
                                     </div>
 
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
+                                    <h3 className="text-xl font-bold mb-3 text-white">
                                         {campaign.name}
                                     </h3>
 
-                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.6, flex: 1 }}>
+                                    <p className="text-sm text-zinc-400 mb-6 flex-1 leading-relaxed">
                                         {campaign.description?.slice(0, 140) || 'Verified agent testing for onchain applications.'}
                                         {campaign.description && campaign.description.length > 140 ? '...' : ''}
                                     </p>
 
                                     {/* Metrics Footer */}
-                                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginTop: 'auto' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                    <div className="border-t border-zinc-800 pt-5 mt-auto">
+                                        <div className="flex justify-between text-xs font-semibold text-zinc-500 mb-2">
                                             <span>PROGRESS</span>
-                                            <span style={{ color: 'var(--text-secondary)' }}>{completedTasks}/{totalTasks} TASKS</span>
+                                            <span className="text-zinc-400">{completedTasks}/{totalTasks} TASKS</span>
                                         </div>
-                                        <div style={{ height: '4px', background: 'var(--bg-secondary)', borderRadius: '2px', overflow: 'hidden', marginBottom: '1.25rem' }}>
+                                        <div className="h-1 bg-zinc-900 rounded-full overflow-hidden mb-5">
                                             <div
-                                                style={{
-                                                    height: '100%',
-                                                    width: `${progress}%`,
-                                                    background: 'var(--accent)',
-                                                    borderRadius: '2px',
-                                                    transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                }}
+                                                className="h-full bg-blue-500 rounded-full transition-all duration-700 ease-out"
+                                                style={{ width: `${progress}%` }}
                                             />
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-zinc-500">
                                                 {campaign.tasks?.length || 0} WORKFLOWS
                                             </span>
-                                            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                                                ${campaign.remaining_budget} <span style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.75rem' }}>LEFT</span>
+                                            <span className="text-sm font-extrabold text-white">
+                                                ${campaign.remaining_budget} <span className="text-zinc-500 font-medium text-xs">LEFT</span>
                                             </span>
                                         </div>
                                     </div>

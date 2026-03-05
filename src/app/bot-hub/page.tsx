@@ -268,13 +268,13 @@ export default function BotHubPage() {
     return (
         <div className="page-container">
             {/* Header */}
-            <div className="page-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div className="page-header flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-12">
                 <div>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.04em' }}>Bot Hub</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Command center for your autonomous agent fleet.</p>
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Bot Hub</h1>
+                    <p className="text-zinc-400 mt-1">Command center for your autonomous agent fleet.</p>
                 </div>
                 <button
-                    className="btn btn-primary"
+                    className="btn btn-primary w-full md:w-auto text-center"
                     onClick={() => setShowDeploy(true)}
                 >
                     + Deploy New Agent
@@ -282,25 +282,24 @@ export default function BotHubPage() {
             </div>
 
             {/* Earnings & Claim Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) 2fr', gap: '2rem', marginBottom: '3rem' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                 {/* Claimable Earnings Card */}
-                <div className="card glass-card" style={{ padding: '2rem', border: '1px solid #00d4ff', background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0, 82, 255, 0.05))' }}>
+                <div className="card glass-card p-8 lg:col-span-1" style={{ border: '1px solid #00d4ff', background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0, 82, 255, 0.05))' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
                         <span style={{ fontSize: '1.5rem' }}>💰</span>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Claimable Earnings</h3>
+                        <h3 className="text-base font-extrabold">Claimable Earnings</h3>
                     </div>
 
-                    <div style={{ textAlign: 'center', padding: '1.5rem 0', marginBottom: '1rem' }}>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Ready to Claim</div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 900, background: 'linear-gradient(90deg, #00d4ff, #0052ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <div className="text-center py-6 mb-4">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Ready to Claim</div>
+                        <div className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
                             ${stats.claimableBalance.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>USDC</div>
+                        <div className="text-xs text-zinc-500 mt-1">USDC</div>
                     </div>
 
                     <button
-                        className="btn btn-primary"
-                        style={{ width: '100%', padding: '0.875rem', fontSize: '0.875rem', fontWeight: 700 }}
+                        className="btn btn-primary w-full p-3 text-sm font-bold"
                         disabled={stats.claimableBalance <= 0 || !!actionLoading}
                         onClick={handleClaim}
                     >
@@ -308,19 +307,19 @@ export default function BotHubPage() {
                     </button>
 
                     {claimSuccess && (
-                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', marginBottom: '0.25rem' }}>✅ Claimed ${claimSuccess.amount.toFixed(4)} USDC</div>
-                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>Tx: {claimSuccess.txHash}</div>
+                        <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                            <div className="text-xs font-bold text-green-500 mb-1">✅ Claimed ${claimSuccess.amount.toFixed(4)} USDC</div>
+                            <div className="text-[10px] text-zinc-500 font-mono break-all">Tx: {claimSuccess.txHash}</div>
                         </div>
                     )}
 
-                    <div style={{ marginTop: '1.25rem', background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontFamily: 'monospace', color: '#00d4ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{walletAddress}</span>
+                    <div className="mt-5 bg-black/20 p-3 rounded-md text-xs font-mono text-cyan-400 flex justify-between items-center">
+                        <span className="truncate mr-2">{walletAddress}</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText(walletAddress!);
                             }}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.875rem' }}
+                            className="bg-transparent border-none text-zinc-500 hover:text-white cursor-pointer text-sm"
                         >
                             📋
                         </button>
@@ -328,24 +327,24 @@ export default function BotHubPage() {
                 </div>
 
                 {/* Fleet Overview Metrics */}
-                <div className="card glass-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', padding: '1.5rem' }}>
-                    <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '0.5rem' }}>
-                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.totalBots}</div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Total Agents</div>
+                <div className="card glass-card grid grid-cols-2 md:grid-cols-4 gap-4 p-6 lg:col-span-2 content-center h-full">
+                    <div className="text-center border-b md:border-b-0 border-r-0 md:border-r border-zinc-800 p-2 pb-4 md:pb-2">
+                        <div className="text-3xl font-black">{stats.totalBots}</div>
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase mt-1">Total Agents</div>
                     </div>
-                    <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '0.5rem' }}>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: stats.workingBots > 0 ? 'var(--accent)' : 'inherit' }} className={stats.workingBots > 0 ? 'pulse-text' : ''}>
+                    <div className="text-center border-b md:border-b-0 md:border-r border-zinc-800 p-2 pb-4 md:pb-2">
+                        <div className={`text-3xl font-black ${stats.workingBots > 0 ? 'text-blue-500 pulse-text' : ''}`}>
                             {stats.workingBots}
                         </div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Active / Working</div>
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase mt-1">Active / Working</div>
                     </div>
-                    <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '0.5rem' }}>
-                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.idleBots}</div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Idle / Ready</div>
+                    <div className="text-center border-r-0 md:border-r border-zinc-800 p-2 pt-4 md:pt-2">
+                        <div className="text-3xl font-black">{stats.idleBots}</div>
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase mt-1">Idle / Ready</div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '0.5rem' }}>
-                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.totalTasks}</div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Tasks Completed</div>
+                    <div className="text-center p-2 pt-4 md:pt-2">
+                        <div className="text-3xl font-black">{stats.totalTasks}</div>
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase mt-1">Tasks Completed</div>
                     </div>
                 </div>
             </div>
@@ -394,80 +393,60 @@ export default function BotHubPage() {
                 </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Agent Fleet List */}
-                <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Your Agent Fleet</h2>
+                <div className="lg:col-span-2">
+                    <h2 className="text-2xl font-bold mb-6">Your Agent Fleet</h2>
                     {loading ? (
-                        <div className="card glass-card" style={{ textAlign: 'center', padding: '4rem' }}>
-                            <div className="loading-spinner" />
+                        <div className="card glass-card text-center p-16">
+                            <div className="loading-spinner mx-auto" />
                         </div>
                     ) : agents.length === 0 ? (
-                        <div className="card glass-card" style={{ textAlign: 'center', padding: '4rem' }}>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>No managed agents found under your account.</p>
+                        <div className="card glass-card text-center p-16">
+                            <p className="text-zinc-400 mb-6">No managed agents found under your account.</p>
                             <button className="btn btn-secondary" onClick={() => setShowDeploy(true)}>Deploy First Agent</button>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="flex flex-col gap-4">
                             {agents.map(agent => (
-                                <div key={agent.id} className="card glass-card animate-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                        <div style={{
-                                            width: '48px',
-                                            height: '48px',
-                                            background: agent.status === 'working' ? 'rgba(0, 82, 255, 0.1)' : 'var(--bg-secondary)',
-                                            borderRadius: '8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1.5rem',
-                                            border: agent.status === 'working' ? '1px solid var(--accent)' : '1px solid var(--border)',
-                                            position: 'relative'
-                                        }}>
+                                <div key={agent.id} className="card glass-card animate-in flex flex-col md:flex-row justify-between items-start md:items-center p-6 gap-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl border relative shrink-0
+                                            ${agent.status === 'working' ? 'bg-blue-500/10 border-blue-500' : 'bg-zinc-900 border-zinc-800'}`}>
                                             {agent.type === 'testing' ? '🧪' : agent.type === 'social' ? '💬' : '🤖'}
                                             {agent.status === 'working' && (
-                                                <div className="pulse-circle" style={{ position: 'absolute', top: -4, right: -4 }} />
+                                                <div className="pulse-circle absolute -top-1 -right-1" />
                                             )}
                                         </div>
                                         <div>
-                                            <h3 style={{ fontWeight: 700, fontSize: '1.125rem' }}>{agent.name}</h3>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                            <h3 className="font-bold text-lg">{agent.name}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-xs text-zinc-500 font-mono">
                                                     {agent.wallet_address.slice(0, 6)}...{agent.wallet_address.slice(-4)}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{
-                                                fontWeight: 800,
-                                                fontSize: '0.75rem',
-                                                color: agent.status === 'idle' ? 'var(--text-secondary)' : 'var(--accent)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.5rem'
-                                            }}>
+                                    <div className="flex w-full md:w-auto justify-between md:justify-end gap-6 items-center border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0">
+                                        <div className="text-center md:text-right">
+                                            <div className={`font-extrabold text-xs flex items-center gap-2 ${agent.status === 'idle' ? 'text-zinc-500' : 'text-blue-500'}`}>
                                                 {agent.status === 'working' && <span className="pulse-inner-dot" />}
                                                 {agent.status.toUpperCase()}
                                             </div>
-                                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>STATUS</div>
+                                            <div className="text-[10px] text-zinc-500 mt-1">STATUS</div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}
-                                                disabled={agent.status !== 'idle' || !!actionLoading}
-                                                onClick={async () => {
-                                                    setActionLoading(agent.id);
-                                                    await fetch(`/api/bot-hub/execute?agentId=${agent.id}`);
-                                                    await fetchHubData(true);
-                                                    setActionLoading(false);
-                                                }}
-                                            >
-                                                {actionLoading === agent.id ? 'Syncing...' : 'Sync & Work'}
-                                            </button>
-                                        </div>
+                                        <button
+                                            className="btn btn-secondary text-xs px-4 py-2"
+                                            disabled={agent.status !== 'idle' || !!actionLoading}
+                                            onClick={async () => {
+                                                setActionLoading(agent.id);
+                                                await fetch(`/api/bot-hub/execute?agentId=${agent.id}`);
+                                                await fetchHubData(true);
+                                                setActionLoading(false);
+                                            }}
+                                        >
+                                            {actionLoading === agent.id ? 'Syncing...' : 'Sync & Work'}
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -475,38 +454,33 @@ export default function BotHubPage() {
                     )}
 
                     {/* Recent Activities Feed */}
-                    <div style={{ marginTop: '3rem' }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Recent Activities</h2>
+                    <div className="mt-12">
+                        <h2 className="text-2xl font-bold mb-6">Recent Activities</h2>
                         {activities.length === 0 ? (
-                            <div className="card glass-card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                            <div className="card glass-card text-center p-12 text-zinc-500">
                                 <p>No recent activity detected for your fleet.</p>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div className="flex flex-col gap-3">
                                 {activities.map((activity) => (
-                                    <div key={activity.id} className="card glass-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: `4px solid ${activity.status === 'paid' ? 'var(--success)' : activity.status === 'rejected' ? 'var(--error)' : 'var(--accent)'}` }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{ fontSize: '1.25rem' }}>
+                                    <div key={activity.id} className={`card glass-card p-5 flex justify-between items-center border-l-4 ${activity.status === 'paid' ? 'border-l-green-500' : activity.status === 'rejected' ? 'border-l-red-500' : 'border-l-blue-500'}`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-xl shrink-0">
                                                 {activity.status === 'paid' ? '💰' : activity.status === 'rejected' ? '❌' : '⏳'}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{activity.tasks?.title || 'Unknown Task'}</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    {new Date(activity.created_at).toLocaleString()} • {agents.find(a => a.id === activity.agent_id)?.name || 'Managed Agent'}
+                                                <div className="font-bold text-sm md:text-base truncate max-w-[150px] sm:max-w-xs">{activity.tasks?.title || 'Unknown Task'}</div>
+                                                <div className="text-xs text-zinc-500 mt-1">
+                                                    {new Date(activity.created_at).toLocaleDateString()} • {agents.find(a => a.id === activity.agent_id)?.name || 'Managed Agent'}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{
-                                                fontSize: '0.75rem',
-                                                fontWeight: 800,
-                                                color: activity.status === 'paid' ? 'var(--success)' : 'var(--text-muted)',
-                                                textTransform: 'uppercase'
-                                            }}>
+                                        <div className="text-right shrink-0">
+                                            <div className={`text-[10px] md:text-xs font-extrabold uppercase ${activity.status === 'paid' ? 'text-green-500' : 'text-zinc-500'}`}>
                                                 {activity.status}
                                             </div>
                                             {activity.tasks?.reward_per_task && (
-                                                <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                                                <div className="text-xs md:text-sm font-semibold mt-1">
                                                     {activity.status === 'paid' ? '+' : ''}{activity.tasks.reward_per_task} USDC
                                                 </div>
                                             )}
@@ -519,45 +493,45 @@ export default function BotHubPage() {
                 </div>
 
                 {/* Earnings Summary Sidebar */}
-                <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Earnings Summary</h2>
-                    <div className="card glass-card" style={{ padding: '1.5rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div className="lg:col-span-1">
+                    <h2 className="text-2xl font-bold mb-6">Earnings Summary</h2>
+                    <div className="card glass-card p-6">
+                        <div className="flex flex-col gap-5">
                             {/* Today */}
-                            <div style={{ padding: '1rem', background: 'rgba(0, 212, 255, 0.05)', borderRadius: '10px', border: '1px solid rgba(0, 212, 255, 0.1)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today</span>
-                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Last 24h</span>
+                            <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">Today</span>
+                                    <span className="text-[10px] text-zinc-500">Last 24h</span>
                                 </div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>${stats.dailyEarnings.toFixed(4)}</div>
-                                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>USDC earned</div>
+                                <div className="text-2xl font-black">${stats.dailyEarnings.toFixed(4)}</div>
+                                <div className="text-[10px] text-zinc-500 mt-1">USDC earned</div>
                             </div>
 
                             {/* This Month */}
-                            <div style={{ padding: '1rem', background: 'rgba(0, 82, 255, 0.05)', borderRadius: '10px', border: '1px solid rgba(0, 82, 255, 0.1)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Month</span>
-                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Last 30d</span>
+                            <div className="p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">This Month</span>
+                                    <span className="text-[10px] text-zinc-500">Last 30d</span>
                                 </div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>${stats.monthlyEarnings.toFixed(4)}</div>
-                                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>USDC earned</div>
+                                <div className="text-2xl font-black">${stats.monthlyEarnings.toFixed(4)}</div>
+                                <div className="text-[10px] text-zinc-500 mt-1">USDC earned</div>
                             </div>
 
                             {/* All-Time */}
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All-Time</span>
-                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Lifetime</span>
+                            <div className="p-4 bg-white/5 rounded-xl border border-zinc-800">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">All-Time</span>
+                                    <span className="text-[10px] text-zinc-500">Lifetime</span>
                                 </div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>${stats.totalEarnings.toFixed(4)}</div>
-                                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>USDC earned</div>
+                                <div className="text-2xl font-black">${stats.totalEarnings.toFixed(4)}</div>
+                                <div className="text-[10px] text-zinc-500 mt-1">USDC earned</div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="card glass-card" style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.1)' }}>
-                        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.5rem' }}>Auto-Matching</h4>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    <div className="card glass-card mt-6 p-6 bg-black/10">
+                        <h4 className="text-sm font-bold mb-2">Auto-Matching</h4>
+                        <p className="text-xs text-zinc-400 leading-relaxed">
                             Managed bots automatically scan for compatible tasks every 5 minutes if they remain idle.
                         </p>
                     </div>
