@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
+import { createPublicClient, createWalletClient, http, formatUnits, parseUnits, publicActions } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { getUsdcAddress, IS_TESTNET } from '@/lib/config';
 import { getServerSupabase } from '@/lib/supabase';
-import { sendUsdc, sendEth } from '@/lib/payout-service';
 
 /**
  * GET /api/wallet?address=0x...
@@ -57,37 +57,89 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/wallet
- * Executes a transfer of ETH or USDC.
- * Body: { from: string, to: string, amount: string, asset: 'ETH' | 'USDC' }
- * Security: This currently uses the system payout wallet. 
- * In a real app, this would use the private key associated with the 'from' address.
+ * Executes a transfer of ETH or USDC from the user's managed wallet.
+ * Body: { from: string, to: string, amount: string, asset: 'ETH' | 'USDC', userId: string }
  */
 export async function POST(request: NextRequest) {
     try {
-        const { to, amount, asset } = await request.json();
+        const { to, amount, asset, userId } = await request.json();
 
-        if (!to || !amount || !asset) {
-            return NextResponse.json({ error: 'Missing required fields: to, amount, asset' }, { status: 400 });
+        if (!to || !amount || !asset || !userId) {
+            return NextResponse.json({ error: 'Missing required fields: to, amount, asset, userId' }, { status: 400 });
         }
 
-        let result;
+        const supabase = getServerSupabase();
+        
+        // Fetch the user's specific private key
+        const { data: user, error: fetchErr } = await supabase
+            .from('users')
+            .select('encrypted_private_key')
+            .eq('user_id', userId.toLowerCase().trim())
+            .single();
+
+        if (fetchErr || !user || !user.encrypted_private_key) {
+            console.error('Failed to fetch user private key:', fetchErr);
+            return NextResponse.json({ error: 'Failed to access wallet credentials' }, { status: 401 });
+        }
+
+        const privateKey = user.encrypted_private_key.startsWith('0x') 
+            ? user.encrypted_private_key 
+            : `0x${user.encrypted_private_key}`;
+
+        const account = privateKeyToAccount(privateKey as `0x${string}`);
+        const chain = IS_TESTNET ? baseSepolia : base;
+
+        const client = createWalletClient({
+            account,
+            chain,
+            transport: http(),
+        }).extend(publicActions);
+
+        let txHash;
+
         if (asset === 'ETH') {
             const amountWei = parseUnits(amount, 18);
-            result = await sendEth(to, amountWei);
+            console.log(`Sending ${amountWei} wei to ${to} from ${account.address}`);
+            
+            txHash = await client.sendTransaction({
+                account,
+                to: to as `0x${string}`,
+                value: amountWei,
+            });
+            
+            await client.waitForTransactionReceipt({ hash: txHash });
+            
         } else if (asset === 'USDC') {
             const amountBase = parseUnits(amount, 6);
-            result = await sendUsdc(to, amountBase);
+            const usdcAddress = getUsdcAddress();
+            console.log(`Sending ${amountBase} USDC to ${to} from ${account.address}`);
+
+            const abi = [{
+                "inputs": [{ "name": "to", "type": "address" }, { "name": "value", "type": "uint256" }],
+                "name": "transfer",
+                "outputs": [{ "name": "success", "type": "bool" }],
+                "type": "function"
+            }];
+
+            const { request } = await client.simulateContract({
+                account,
+                address: usdcAddress,
+                abi,
+                functionName: 'transfer',
+                args: [to as `0x${string}`, amountBase],
+            });
+
+            txHash = await client.writeContract(request);
+            await client.waitForTransactionReceipt({ hash: txHash });
+            
         } else {
             return NextResponse.json({ error: 'Invalid asset' }, { status: 400 });
         }
 
-        if (result.success) {
-            return NextResponse.json({ success: true, txHash: result.txHash });
-        } else {
-            return NextResponse.json({ error: result.error }, { status: 500 });
-        }
+        return NextResponse.json({ success: true, txHash });
+
     } catch (error) {
         console.error('Wallet transfer API error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Transfer failed' }, { status: 500 });
     }
 }

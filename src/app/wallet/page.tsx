@@ -19,6 +19,7 @@ export default function WalletPage() {
     const [error, setError] = useState<string | null>(null);
 
     const walletAddress = typeof window !== 'undefined' ? localStorage.getItem('agentprobe_wallet_address') : null;
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('agentprobe_user_id') : null;
 
     const fetchBalances = useCallback(async () => {
         if (!walletAddress) return;
@@ -53,7 +54,7 @@ export default function WalletPage() {
             const res = await fetch('/api/wallet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to: recipient, amount, asset }),
+                body: JSON.stringify({ to: recipient, amount, asset, userId }),
             });
             const data = await res.json();
 
