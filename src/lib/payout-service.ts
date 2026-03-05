@@ -2,7 +2,30 @@ import { createWalletClient, http, publicActions } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { CampaignVaultABI } from '@/lib/contract-abi';
-import { CAMPAIGN_VAULT_ADDRESS, CHAIN_ID, IS_TESTNET } from '@/lib/config';
+import { CAMPAIGN_VAULT_ADDRESS, IS_TESTNET, getUsdcAddress } from '@/lib/config';
+
+/**
+ * getPlatformAccount
+ * Helper to safely get the platform account from environment variables.
+ * Handles missing '0x' prefix and whitespace.
+ */
+function getPlatformAccount() {
+    let pk = process.env.PAYOUT_WALLET_PRIVATE_KEY;
+    if (!pk) return null;
+    
+    // Clean whitespace and ensure 0x prefix
+    pk = pk.trim();
+    if (!pk.startsWith('0x')) {
+        pk = `0x${pk}`;
+    }
+    
+    try {
+        return privateKeyToAccount(pk as `0x${string}`);
+    } catch (error) {
+        console.error('Failed to parse platform private key:', error);
+        return null;
+    }
+}
 
 /**
  * PayoutService
@@ -10,11 +33,11 @@ import { CAMPAIGN_VAULT_ADDRESS, CHAIN_ID, IS_TESTNET } from '@/lib/config';
  * This runs on the server side using the PAYOUT_WALLET_PRIVATE_KEY.
  */
 export async function processPayout(campaignId: number, agentWallet: string, submissionId: string) {
-    const privateKey = process.env.PAYOUT_WALLET_PRIVATE_KEY as `0x${string}`;
+    const account = getPlatformAccount();
 
-    if (!privateKey) {
-        console.error('PAYOUT_WALLET_PRIVATE_KEY is not set');
-        return { success: false, error: 'Internal configuration error' };
+    if (!account) {
+        console.error('PAYOUT_WALLET_PRIVATE_KEY is not set or invalid');
+        return { success: false, error: 'Internal configuration error: Invalid platform wallet' };
     }
 
     if (CAMPAIGN_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000') {
@@ -22,7 +45,6 @@ export async function processPayout(campaignId: number, agentWallet: string, sub
         return { success: false, error: 'Contract address not configured' };
     }
 
-    const account = privateKeyToAccount(privateKey);
     const chain = IS_TESTNET ? baseSepolia : base;
 
     const client = createWalletClient({
@@ -73,10 +95,9 @@ export async function processPayout(campaignId: number, agentWallet: string, sub
  * Used for treasury withdrawals.
  */
 export async function sendUsdc(to: string, amount: bigint) {
-    const privateKey = process.env.PAYOUT_WALLET_PRIVATE_KEY as `0x${string}`;
-    if (!privateKey) return { success: false, error: 'Internal configuration error' };
+    const account = getPlatformAccount();
+    if (!account) return { success: false, error: 'Internal configuration error: Invalid platform wallet' };
 
-    const account = privateKeyToAccount(privateKey);
     const chain = IS_TESTNET ? baseSepolia : base;
     const usdcAddress = getUsdcAddress();
 
@@ -88,12 +109,12 @@ export async function sendUsdc(to: string, amount: bigint) {
 
     try {
         console.log(`Sending ${amount} units of USDC to ${to}`);
-        
+
         // standard ERC20 transfer abi
         const abi = [{
-            "inputs": [{"name": "to", "type": "address"}, {"name": "value", "type": "uint256"}],
+            "inputs": [{ "name": "to", "type": "address" }, { "name": "value", "type": "uint256" }],
             "name": "transfer",
-            "outputs": [{"name": "success", "type": "bool"}],
+            "outputs": [{ "name": "success", "type": "bool" }],
             "type": "function"
         }];
 
@@ -111,6 +132,40 @@ export async function sendUsdc(to: string, amount: bigint) {
         return { success: true, txHash: hash, blockNumber: receipt.blockNumber };
     } catch (error) {
         console.error('Transfer failed:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+/**
+ * sendEth
+ * Directly transfers ETH from the platform wallet to a destination.
+ */
+export async function sendEth(to: string, amount: bigint) {
+    const account = getPlatformAccount();
+    if (!account) return { success: false, error: 'Internal configuration error: Invalid platform wallet' };
+
+    const chain = IS_TESTNET ? baseSepolia : base;
+
+    const client = createWalletClient({
+        account,
+        chain,
+        transport: http(),
+    }).extend(publicActions);
+
+    try {
+        console.log(`Sending ${amount} units of ETH to ${to}`);
+
+        const hash = await client.sendTransaction({
+            account,
+            to: to as `0x${string}`,
+            value: amount,
+        });
+
+        const receipt = await client.waitForTransactionReceipt({ hash });
+
+        return { success: true, txHash: hash, blockNumber: receipt.blockNumber };
+    } catch (error) {
+        console.error('ETH Transfer failed:', error);
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }

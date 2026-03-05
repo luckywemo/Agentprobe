@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface PendingSubmission {
     id: string;
@@ -23,25 +23,29 @@ interface PendingSubmission {
 
 export default function AdminPage() {
     const [submissions, setSubmissions] = useState<PendingSubmission[]>([]);
+    const [stats, setStats] = useState({ approvedToday: 0, rejectedToday: 0 });
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    async function fetchSubmissions() {
+    const fetchSubmissions = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch('/api/admin/review');
             const data = await res.json();
             setSubmissions(data.submissions || []);
+            if (data.stats) setStats(data.stats);
         } catch {
             // handle silently
         }
         setLoading(false);
-    }
+    }, []);
 
     useEffect(() => {
         fetchSubmissions();
-    }, []);
+        const interval = setInterval(fetchSubmissions, 5000); // 5s refresh
+        return () => clearInterval(interval);
+    }, [fetchSubmissions]);
 
     async function handleAction(submissionId: string, action: 'approve' | 'reject') {
         setActionLoading(submissionId);
@@ -71,11 +75,11 @@ export default function AdminPage() {
                     <div className="stat-label">Pending Reviews</div>
                 </div>
                 <div className="card">
-                    <div className="stat-value">—</div>
+                    <div className="stat-value">{stats.approvedToday}</div>
                     <div className="stat-label">Approved Today</div>
                 </div>
                 <div className="card">
-                    <div className="stat-value">—</div>
+                    <div className="stat-value">{stats.rejectedToday}</div>
                     <div className="stat-label">Rejected Today</div>
                 </div>
             </div>

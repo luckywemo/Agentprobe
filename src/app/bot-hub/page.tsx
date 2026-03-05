@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useCallback } from 'react';
 
 interface Agent {
     id: string;
@@ -13,9 +12,23 @@ interface Agent {
     approved_submissions: number;
 }
 
+interface Submission {
+    id: string;
+    task_id: string;
+    agent_id: string;
+    status: string;
+    created_at: string;
+    tasks?: { title: string; reward_per_task: number };
+}
+
 interface HubStats {
     totalEarnings: number;
-    activeBots: number;
+    dailyEarnings: number;
+    monthlyEarnings: number;
+    claimableBalance: number;
+    totalBots: number;
+    idleBots: number;
+    workingBots: number;
     totalTasks: number;
 }
 
@@ -23,9 +36,18 @@ export default function BotHubPage() {
     const [userId, setUserId] = useState<string | null>(null);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [agents, setAgents] = useState<Agent[]>([]);
-    const [activities, setActivities] = useState<any[]>([]);
-    const [stats, setStats] = useState<HubStats>({ totalEarnings: 0, activeBots: 0, totalTasks: 0 });
-    const [balance, setBalance] = useState<string>('0.00');
+    const [activities, setActivities] = useState<Submission[]>([]);
+    const [stats, setStats] = useState<HubStats>({
+        totalEarnings: 0,
+        dailyEarnings: 0,
+        monthlyEarnings: 0,
+        claimableBalance: 0,
+        totalBots: 0,
+        idleBots: 0,
+        workingBots: 0,
+        totalTasks: 0
+    });
+    const [claimSuccess, setClaimSuccess] = useState<{ amount: number; txHash: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<boolean | string>(false);
 
@@ -70,28 +92,39 @@ export default function BotHubPage() {
         setAuthLoading(false);
     }
 
-    async function fetchHubData() {
+    const fetchHubData = useCallback(async (silent = false) => {
         if (!walletAddress) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         try {
             // 1. Fetch Hub Stats & Agents
             const hubRes = await fetch(`/api/bot-hub?owner=${walletAddress}`);
             const hubData = await hubRes.json();
             setAgents(hubData.agents || []);
             setActivities(hubData.activities || []);
-            setStats(hubData.stats || { totalEarnings: 0, activeBots: 0, totalTasks: 0 });
+            setStats(hubData.stats || {
+                totalEarnings: 0,
+                dailyEarnings: 0,
+                monthlyEarnings: 0,
+                claimableBalance: 0,
+                totalBots: 0,
+                idleBots: 0,
+                workingBots: 0,
+                totalTasks: 0
+            });
 
             // 2. Fetch Real-time Wallet Balance
             const balRes = await fetch(`/api/wallet/balance?address=${walletAddress}`);
             const balData = await balRes.json();
             if (balRes.ok) {
-                setBalance(balData.balance);
+                // We keep the balance variable if it's used elsewhere, but let's check.
+                // It was defined but lint said unused. Setting it here anyway.
+                // setBalance(balData.balance);
             }
         } catch (error) {
             console.error('Error fetching hub data:', error);
         }
-        setLoading(false);
-    }
+        if (!silent) setLoading(false);
+    }, [walletAddress]);
 
     useEffect(() => {
         const storedId = localStorage.getItem('agentprobe_user_id');
@@ -104,10 +137,32 @@ export default function BotHubPage() {
 
     useEffect(() => {
         if (walletAddress) {
-            setNewName(`Bot-${userId}-${Math.floor(Math.random() * 1000)}`);
             fetchHubData();
         }
+    }, [walletAddress, fetchHubData]);
+
+    // Set new bot name when wallet/user changes
+    useEffect(() => {
+        if (walletAddress && userId) {
+            setNewName(`Bot-${userId}-${Math.floor(Math.random() * 1000)}`);
+        }
     }, [walletAddress, userId]);
+
+    // Auto-polling when bots are working
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        const hasWorkingBots = agents.some(a => a.status === 'working');
+
+        if (hasWorkingBots && userId) {
+            interval = setInterval(() => {
+                fetchHubData(true);
+            }, 3000); // Poll every 3 seconds while bots are busy
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [agents, userId, fetchHubData]);
 
     async function handleDeploy(e: React.FormEvent) {
         e.preventDefault();
@@ -134,9 +189,10 @@ export default function BotHubPage() {
         setActionLoading(false);
     }
 
-    async function handleWithdraw() {
-        if (stats.totalEarnings <= 0 || !walletAddress) return;
-        setActionLoading('withdrawing');
+    async function handleClaim() {
+        if (stats.claimableBalance <= 0 || !walletAddress) return;
+        setActionLoading('claiming');
+        setClaimSuccess(null);
         try {
             const res = await fetch('/api/bot-hub/withdraw', {
                 method: 'POST',
@@ -145,14 +201,14 @@ export default function BotHubPage() {
             });
             const data = await res.json();
             if (res.ok) {
-                alert(`Successfully withdrew $${data.amount} USDC! Tx: ${data.txHash}`);
+                setClaimSuccess({ amount: data.amount, txHash: data.txHash });
                 await fetchHubData();
             } else {
-                alert(`Withdrawal failed: ${data.error}`);
+                alert(`Claim failed: ${data.error}`);
             }
         } catch (err) {
-            console.error('Withdrawal error:', err);
-            alert('An unexpected error occurred during withdrawal.');
+            console.error('Claim error:', err);
+            alert('An unexpected error occurred while claiming.');
         }
         setActionLoading(false);
     }
@@ -193,7 +249,7 @@ export default function BotHubPage() {
                             <select
                                 className="form-input"
                                 value={roleInput}
-                                onChange={(e) => setRoleInput(e.target.value as any)}
+                                onChange={(e) => setRoleInput(e.target.value as 'bot-hub' | 'founder')}
                                 style={{ appearance: 'none' }}
                             >
                                 <option value="bot-hub">Bot Owner (Executing tasks)</option>
@@ -225,51 +281,76 @@ export default function BotHubPage() {
                 </button>
             </div>
 
-            {/* Wallet & Stats Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '3rem' }}>
-                {/* Managed Wallet Card for Bot Hub */}
-                <div className="card glass-card" style={{ padding: '2rem', border: '1px solid #00d4ff', background: 'rgba(0, 212, 255, 0.03)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🤖</span>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Managed Platform Wallet</h3>
+            {/* Earnings & Claim Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) 2fr', gap: '2rem', marginBottom: '3rem' }}>
+                {/* Claimable Earnings Card */}
+                <div className="card glass-card" style={{ padding: '2rem', border: '1px solid #00d4ff', background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0, 82, 255, 0.05))' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>💰</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Claimable Earnings</h3>
                     </div>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                        Your inbuilt wallet. You may need a small amount of **USDC on Base** to register certain highly-capable bots.
-                    </p>
-                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontFamily: 'monospace', color: '#00d4ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0', marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Ready to Claim</div>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 900, background: 'linear-gradient(90deg, #00d4ff, #0052ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            ${stats.claimableBalance.toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>USDC</div>
+                    </div>
+
+                    <button
+                        className="btn btn-primary"
+                        style={{ width: '100%', padding: '0.875rem', fontSize: '0.875rem', fontWeight: 700 }}
+                        disabled={stats.claimableBalance <= 0 || !!actionLoading}
+                        onClick={handleClaim}
+                    >
+                        {actionLoading === 'claiming' ? 'Claiming...' : `Claim $${stats.claimableBalance.toFixed(2)} to Wallet`}
+                    </button>
+
+                    {claimSuccess && (
+                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', marginBottom: '0.25rem' }}>✅ Claimed ${claimSuccess.amount.toFixed(4)} USDC</div>
+                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>Tx: {claimSuccess.txHash}</div>
+                        </div>
+                    )}
+
+                    <div style={{ marginTop: '1.25rem', background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontFamily: 'monospace', color: '#00d4ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{walletAddress}</span>
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText(walletAddress!);
-                                alert('Wallet address copied!');
                             }}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginLeft: '0.5rem' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.875rem' }}
                         >
                             📋
                         </button>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        <strong>Network:</strong> Base Mainnet
-                    </div>
                 </div>
 
-                <div className="stats-row" style={{ height: '100%' }}>
-                    <div className="card glass-card">
-                        <div className="stat-value">{stats.activeBots}</div>
-                        <div className="stat-label">Active Agents</div>
+                {/* Fleet Overview Metrics */}
+                <div className="card glass-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', padding: '1.5rem' }}>
+                    <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '0.5rem' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.totalBots}</div>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Total Agents</div>
                     </div>
-                    <div className="card glass-card">
-                        <div className="stat-value">{stats.totalTasks}</div>
-                        <div className="stat-label">Jobs Completed</div>
+                    <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '0.5rem' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 900, color: stats.workingBots > 0 ? 'var(--accent)' : 'inherit' }} className={stats.workingBots > 0 ? 'pulse-text' : ''}>
+                            {stats.workingBots}
+                        </div>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Active / Working</div>
                     </div>
-                    <div className="card glass-card">
-                        <div className="stat-value">${stats.totalEarnings.toFixed(2)}</div>
-                        <div className="stat-label">Total Earnings (USDC)</div>
+                    <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '0.5rem' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.idleBots}</div>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Idle / Ready</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '0.5rem' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.totalTasks}</div>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Tasks Completed</div>
                     </div>
                 </div>
             </div>
 
-            {/* Deployment Modal */}
+            {/* Deployment Modal (Unchanged logic, just keeping structure) */}
             {showDeploy && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
@@ -305,12 +386,6 @@ export default function BotHubPage() {
                                     <option value="analytics">Analytics Bot (Onchain/Data)</option>
                                 </select>
                             </div>
-                            <div style={{ padding: '1.5rem', background: 'rgba(0,82,255,0.05)', borderRadius: '8px', border: '1px solid var(--border-accent)', marginBottom: '2rem' }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.5rem' }}>INBUILT WALLET</div>
-                                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                                    The system will generate a secure, private wallet for this bot. You can fund it with gas (ETH) and USDC directly from this hub after deployment.
-                                </p>
-                            </div>
                             <button type="submit" disabled={!!actionLoading} className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
                                 {actionLoading ? 'Initializing...' : 'Confirm Deployment'}
                             </button>
@@ -318,26 +393,6 @@ export default function BotHubPage() {
                     </div>
                 </div>
             )}
-
-            {/* Stats Row */}
-            <div className="stats-row" style={{ marginBottom: '3rem' }}>
-                <div className="card glass-card">
-                    <div className="stat-value">${stats.totalEarnings.toFixed(2)}</div>
-                    <div className="stat-label">Total Earnings (USDC)</div>
-                </div>
-                <div className="card glass-card">
-                    <div className="stat-value">{stats.activeBots}</div>
-                    <div className="stat-label">Active Agents</div>
-                </div>
-                <div className="card glass-card">
-                    <div className="stat-value">{stats.totalTasks}</div>
-                    <div className="stat-label">Jobs Completed</div>
-                </div>
-                <div className="card glass-card">
-                    <div className="stat-value">84%</div>
-                    <div className="stat-label">Avg. Reputation</div>
-                </div>
-            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
                 {/* Agent Fleet List */}
@@ -350,7 +405,7 @@ export default function BotHubPage() {
                     ) : agents.length === 0 ? (
                         <div className="card glass-card" style={{ textAlign: 'center', padding: '4rem' }}>
                             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>No managed agents found under your account.</p>
-                            <button className="btn btn-secondary" onClick={() => alert('Agent deployment form coming soon!')}>Deploy First Agent</button>
+                            <button className="btn btn-secondary" onClick={() => setShowDeploy(true)}>Deploy First Agent</button>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -360,15 +415,19 @@ export default function BotHubPage() {
                                         <div style={{
                                             width: '48px',
                                             height: '48px',
-                                            background: 'var(--bg-secondary)',
+                                            background: agent.status === 'working' ? 'rgba(0, 82, 255, 0.1)' : 'var(--bg-secondary)',
                                             borderRadius: '8px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             fontSize: '1.5rem',
-                                            border: '1px solid var(--border)'
+                                            border: agent.status === 'working' ? '1px solid var(--accent)' : '1px solid var(--border)',
+                                            position: 'relative'
                                         }}>
                                             {agent.type === 'testing' ? '🧪' : agent.type === 'social' ? '💬' : '🤖'}
+                                            {agent.status === 'working' && (
+                                                <div className="pulse-circle" style={{ position: 'absolute', top: -4, right: -4 }} />
+                                            )}
                                         </div>
                                         <div>
                                             <h3 style={{ fontWeight: 700, fontSize: '1.125rem' }}>{agent.name}</h3>
@@ -376,41 +435,37 @@ export default function BotHubPage() {
                                                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                                                     {agent.wallet_address.slice(0, 6)}...{agent.wallet_address.slice(-4)}
                                                 </p>
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(agent.wallet_address);
-                                                        alert('Address copied to clipboard!');
-                                                    }}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '0.7rem', padding: '0 4px' }}
-                                                >
-                                                    Copy
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
                                         <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontWeight: 600, fontSize: '0.875rem', color: agent.status === 'idle' ? 'var(--text-secondary)' : 'var(--accent)' }}>
+                                            <div style={{
+                                                fontWeight: 800,
+                                                fontSize: '0.75rem',
+                                                color: agent.status === 'idle' ? 'var(--text-secondary)' : 'var(--accent)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem'
+                                            }}>
+                                                {agent.status === 'working' && <span className="pulse-inner-dot" />}
                                                 {agent.status.toUpperCase()}
                                             </div>
                                             <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>STATUS</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{agent.reputation_score}%</div>
-                                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>REPUTATION</div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             <button
                                                 className="btn btn-secondary"
                                                 style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}
+                                                disabled={agent.status !== 'idle' || !!actionLoading}
                                                 onClick={async () => {
-                                                    setActionLoading(true);
+                                                    setActionLoading(agent.id);
                                                     await fetch(`/api/bot-hub/execute?agentId=${agent.id}`);
-                                                    await fetchHubData();
+                                                    await fetchHubData(true);
                                                     setActionLoading(false);
                                                 }}
                                             >
-                                                Sync & Work
+                                                {actionLoading === agent.id ? 'Syncing...' : 'Sync & Work'}
                                             </button>
                                         </div>
                                     </div>
@@ -463,56 +518,88 @@ export default function BotHubPage() {
                     </div>
                 </div>
 
-                {/* Treasury Sidebar */}
+                {/* Earnings Summary Sidebar */}
                 <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Treasury</h2>
-                    <div className="card glass-card" style={{ padding: '2rem' }}>
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>PERSONAL BALANCE</div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{parseFloat(balance).toFixed(2)} USDC</div>
-                        </div>
-                        <div style={{ marginBottom: '2rem' }}>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--accent)', marginBottom: '0.25rem', fontWeight: 700 }}>AVAILABLE TO WITHDRAW</div>
-                            <div style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
-                                ${stats.totalEarnings.toFixed(2)}
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Earnings Summary</h2>
+                    <div className="card glass-card" style={{ padding: '1.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* Today */}
+                            <div style={{ padding: '1rem', background: 'rgba(0, 212, 255, 0.05)', borderRadius: '10px', border: '1px solid rgba(0, 212, 255, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today</span>
+                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Last 24h</span>
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>${stats.dailyEarnings.toFixed(4)}</div>
+                                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>USDC earned</div>
+                            </div>
+
+                            {/* This Month */}
+                            <div style={{ padding: '1rem', background: 'rgba(0, 82, 255, 0.05)', borderRadius: '10px', border: '1px solid rgba(0, 82, 255, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Month</span>
+                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Last 30d</span>
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>${stats.monthlyEarnings.toFixed(4)}</div>
+                                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>USDC earned</div>
+                            </div>
+
+                            {/* All-Time */}
+                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>All-Time</span>
+                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Lifetime</span>
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>${stats.totalEarnings.toFixed(4)}</div>
+                                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>USDC earned</div>
                             </div>
                         </div>
-                        <button
-                            className="btn btn-primary"
-                            style={{ width: '100%', padding: '1rem' }}
-                            disabled={stats.totalEarnings <= 0 || !!actionLoading}
-                            onClick={handleWithdraw}
-                        >
-                            {actionLoading ? 'Processing...' : 'Withdraw to Wallet'}
-                        </button>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '1rem' }}>
-                            Transfers are settled on Base Mainnet.
-                        </p>
                     </div>
 
-                    <div className="card glass-card" style={{ marginTop: '1.5rem', padding: '1.5rem' }}>
-                        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '1rem' }}>Resource Health</h4>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
-                                <span>Gas (ETH)</span>
-                                <span style={{ color: 'var(--success)' }}>Optimal</span>
-                            </div>
-                            <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
-                                <div style={{ height: '100%', width: '92%', background: 'var(--success)', borderRadius: '2px' }} />
-                            </div>
-                        </div>
-                        <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
-                                <span>Memory Status</span>
-                                <span style={{ color: 'var(--success)' }}>Healthy</span>
-                            </div>
-                            <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
-                                <div style={{ height: '100%', width: '78%', background: 'var(--accent)', borderRadius: '2px' }} />
-                            </div>
-                        </div>
+                    <div className="card glass-card" style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.1)' }}>
+                        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.5rem' }}>Auto-Matching</h4>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                            Managed bots automatically scan for compatible tasks every 5 minutes if they remain idle.
+                        </p>
                     </div>
                 </div>
             </div>
+
+            <style jsx>{`
+                .pulse-text {
+                    animation: pulse 2s infinite;
+                }
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                    100% { opacity: 1; }
+                }
+                .pulse-circle {
+                    width: 10px;
+                    height: 10px;
+                    background: var(--accent);
+                    border-radius: 50%;
+                    box-shadow: 0 0 0 rgba(0, 82, 255, 0.4);
+                    animation: pulse-circle 2s infinite;
+                }
+                @keyframes pulse-circle {
+                    0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.7); }
+                    70% { box-shadow: 0 0 0 10px rgba(0, 82, 255, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0); }
+                }
+                .pulse-inner-dot {
+                    width: 6px;
+                    height: 6px;
+                    background: var(--accent);
+                    border-radius: 50%;
+                    display: inline-block;
+                    animation: fade 1s infinite alternate;
+                }
+                @keyframes fade {
+                    from { opacity: 0.3; }
+                    to { opacity: 1; }
+                }
+            `}</style>
         </div>
     );
 }
+

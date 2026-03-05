@@ -6,11 +6,17 @@ export async function GET(request: NextRequest) {
     const supabase = getServerSupabase();
     const { searchParams } = new URL(request.url);
     const founder = searchParams.get('founder');
+    const status = searchParams.get('status') || 'pending';
 
     let query = supabase
         .from('submissions')
-        .select('*, tasks(title, campaign_id), agents(name, wallet_address, tier, reputation_score)')
-        .eq('status', 'pending');
+        .select('*, tasks(title, campaign_id), agents(name, wallet_address, tier, reputation_score)');
+
+    // Support multiple statuses via comma separation (e.g. status=approved,paid)
+    if (status !== 'all') {
+        const statuses = status.split(',');
+        query = query.in('status', statuses);
+    }
 
     if (founder) {
         // Filter tasks by campaign_id where campaign has this founder_address
@@ -20,7 +26,7 @@ export async function GET(request: NextRequest) {
             .select('id')
             .eq('founder_address', founder.toLowerCase());
 
-        const campaignIds = campaigns?.map(c => c.id) || [];
+        const campaignIds = campaigns?.map((c: { id: string }) => c.id) || [];
         query = query.in('campaign_id', campaignIds);
     }
 
@@ -31,8 +37,28 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`[API/Review] Fetched ${data?.length || 0} pending submissions${founder ? ` for founder ${founder}` : ''}.`);
-    return NextResponse.json({ submissions: data });
+    // Calculate today's stats (since start of day)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDayIso = startOfDay.toISOString();
+
+    const { data: statsData } = await supabase
+        .from('submissions')
+        .select('status')
+        .gte('reviewed_at', startOfDayIso)
+        .in('status', ['approved', 'paid', 'rejected']);
+
+    const approvedToday = statsData?.filter(s => ['approved', 'paid'].includes(s.status)).length || 0;
+    const rejectedToday = statsData?.filter(s => s.status === 'rejected').length || 0;
+
+    console.log(`[API/Review] Fetched ${data?.length || 0} submissions. Stats: A=${approvedToday}, R=${rejectedToday}`);
+    return NextResponse.json({ 
+        submissions: data,
+        stats: {
+            approvedToday,
+            rejectedToday
+        }
+    });
 }
 
 // POST /api/admin/review — Approve or reject a submission
@@ -73,22 +99,32 @@ export async function POST(request: NextRequest) {
             .update({ status: newStatus, reviewed_at: new Date().toISOString() })
             .eq('id', submission_id);
 
-        // If approved, trigger onchain payout
+        // If approved, trigger onchain payout and BUDGET DEDUCTION
         let payoutResult = null;
         if (action === 'approve') {
             try {
-                const { processPayout } = await import('@/lib/payout-service');
-
-                // Fetch onchain_id from campaign
-                const { data: campaign } = await supabase
+                // 1. Deduct Reward from Campaign Budget
+                // We fetch the reward first to ensure we deduct the correct amount
+                const { data: campData } = await supabase
                     .from('campaigns')
-                    .select('onchain_id')
+                    .select('reward_per_task, remaining_budget, onchain_id')
                     .eq('id', submission.campaign_id)
                     .single();
 
-                if (campaign && campaign.onchain_id !== null) {
+                if (campData) {
+                    const newBudget = Math.max(0, (campData.remaining_budget || 0) - (campData.reward_per_task || 0));
+                    await supabase
+                        .from('campaigns')
+                        .update({ remaining_budget: newBudget })
+                        .eq('id', submission.campaign_id);
+                }
+
+                // 2. Trigger onchain payout
+                const { processPayout } = await import('@/lib/payout-service');
+
+                if (campData && campData.onchain_id !== null) {
                     payoutResult = await processPayout(
-                        campaign.onchain_id,
+                        campData.onchain_id,
                         submission.agent_wallet,
                         submission.id
                     );
@@ -104,7 +140,7 @@ export async function POST(request: NextRequest) {
                     }
                 }
             } catch (err) {
-                console.error('Failed to process payout:', err);
+                console.error('Failed to process approval workflow:', err);
             }
         }
 

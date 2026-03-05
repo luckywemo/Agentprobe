@@ -118,6 +118,7 @@ export default function CreateCampaignPage() {
                     total_budget: totalBudget,
                     onchain_id: 0, // Will be updated once we read onchain events
                     tasks: validTasks,
+                    ends_at: (window as any)._campaign_ends_at || null,
                 }),
             });
             const data = await res.json();
@@ -200,15 +201,6 @@ export default function CreateCampaignPage() {
                                 placeholder="https://app.yourproduct.com"
                             />
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Description</label>
-                            <textarea
-                                className="form-textarea"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Describe what you want agents to test..."
-                            />
-                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div className="form-group">
                                 <label className="form-label">Reward per Task (USDC) *</label>
@@ -236,6 +228,30 @@ export default function CreateCampaignPage() {
                                     ≈ {Math.floor(parseFloat(totalBudget) / parseFloat(rewardPerTask))} tasks
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Campaign Duration</label>
+                            <select
+                                className="form-input"
+                                onChange={(e) => {
+                                    const days = parseInt(e.target.value);
+                                    if (days > 0) {
+                                        const date = new Date();
+                                        date.setDate(date.getDate() + days);
+                                        (window as any)._campaign_ends_at = date.toISOString();
+                                    } else {
+                                        (window as any)._campaign_ends_at = null;
+                                    }
+                                }}
+                            >
+                                <option value="0">Indefinite (Until budget runs out)</option>
+                                <option value="1">24 Hours</option>
+                                <option value="3">3 Days</option>
+                                <option value="7">7 Days</option>
+                                <option value="30">30 Days</option>
+                            </select>
+                            <div className="form-hint">Campaign will automatically end after this period.</div>
                         </div>
                     </div>
 

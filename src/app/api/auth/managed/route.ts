@@ -32,6 +32,11 @@ export async function POST(request: NextRequest) {
             .eq('user_id', normalizedId)
             .single();
 
+        if (fetchErr && fetchErr.code !== 'PGRST116') {
+            console.error('Fetch error:', fetchErr);
+            return NextResponse.json({ error: 'Database error' }, { status: 500 });
+        }
+
         if (user) {
             // Simple password check for MVP
             if (user.password_hash !== password) {

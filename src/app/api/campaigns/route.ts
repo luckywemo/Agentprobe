@@ -17,6 +17,14 @@ export async function GET(request: NextRequest) {
         query = query.eq('status', status);
     }
 
+    // Default: Filter out deleted campaigns
+    query = query.eq('is_deleted', false);
+
+    // Default: Filter out expired campaigns for 'active' status
+    if (status === 'active') {
+        query = query.or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`);
+    }
+
     if (founder) {
         query = query.eq('founder_address', founder.toLowerCase());
     }
@@ -71,6 +79,8 @@ export async function POST(request: NextRequest) {
                 remaining_budget: parseFloat(total_budget),
                 onchain_id: onchain_id ?? null,
                 status: onchain_id !== null && onchain_id !== undefined ? 'active' : 'draft',
+                ends_at: body.ends_at ? new Date(body.ends_at).toISOString() : null,
+                is_deleted: false,
             })
             .select()
             .single();
@@ -91,18 +101,22 @@ export async function POST(request: NextRequest) {
             }));
 
 
-            const { error: tasksError } = await supabase.from('tasks').insert(taskRows);
+            const { data: createdTasks, error: tasksError } = await supabase
+                .from('tasks')
+                .insert(taskRows)
+                .select();
+
             if (tasksError) {
                 return NextResponse.json({ error: tasksError.message }, { status: 500 });
             }
 
             // Trigger Matchmaking for the new tasks
-            // We run this in the background (no await) or await if we want immediate feedback
-            // For now, let's await to ensure the demo shows the result.
             await triggerMatchmaking(campaign.id);
+
+            return NextResponse.json({ campaign, tasks: createdTasks }, { status: 201 });
         }
 
-        return NextResponse.json({ campaign }, { status: 201 });
+        return NextResponse.json({ campaign, tasks: [] }, { status: 201 });
     } catch {
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }

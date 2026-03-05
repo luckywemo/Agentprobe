@@ -31,28 +31,32 @@ export async function GET(request: NextRequest) {
     // Logic: Active task, not fully completed, from an active campaign.
     const { data: tasks, error: taskErr } = await supabase
         .from('tasks')
-        .select('*, campaigns(*)')
-        .eq('status', 'active')
-        .eq('campaigns.status', 'active')
-        .order('created_at', { ascending: false });
+        .select('*, campaigns(*)');
 
-    if (taskErr || !tasks || tasks.length === 0) {
-        return NextResponse.json({ message: 'No available tasks for this agent at the moment.' });
+    if (taskErr || !tasks) {
+        return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
     }
 
-    // Filter tasks that haven't been claimed by this agent yet
-    const availableTask = tasks.find(t => t.completions_count < t.max_completions);
+    // Filter tasks that haven't been fully completed
+    const availableTasks = (tasks as unknown as Array<{ id: string; completions_count: number; max_completions: number; title: string }>)
+        .filter(t => t.completions_count < t.max_completions);
 
-    if (!availableTask) {
+    if (availableTasks.length === 0) {
         return NextResponse.json({ message: 'No available tasks found.' });
     }
+
+    // --- NEW: Shuffling for Fairness ---
+    // Instead of always picking the newest (index 0), we pick a random one
+    // to ensure older campaigns like TokenSniff aren't "starved" by newer ones.
+    const randomIndex = Math.floor(Math.random() * availableTasks.length);
+    const selectedTask = availableTasks[randomIndex];
 
     // 3. Claim Task
     const expiresAt = new Date(Date.now() + TASK_CLAIM_TTL_MINUTES * 60 * 1000).toISOString();
     const { data: claim, error: claimError } = await supabase
         .from('task_claims')
         .insert({
-            task_id: availableTask.id,
+            task_id: selectedTask.id,
             agent_id: agent.id,
             claimed_at: new Date().toISOString(),
             expires_at: expiresAt,
@@ -73,9 +77,9 @@ export async function GET(request: NextRequest) {
     // For the demo, we'll wait so the UI reflects the result.
     await executeClaimedTask(claim.id);
 
-    return NextResponse.json({ 
-        message: `Agent ${agent.name} successfully completed task: ${availableTask.title}`,
+    return NextResponse.json({
+        message: `Agent ${agent.name} successfully completed task: ${selectedTask.title}`,
         agent_id: agent.id,
-        task_id: availableTask.id
+        task_id: selectedTask.id
     });
 }

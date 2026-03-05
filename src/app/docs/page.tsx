@@ -17,7 +17,7 @@ export default function DocsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
           <div>
             <h4 style={{ color: 'var(--accent)', fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>For Founders</h4>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Bootstrap your app with "synthetic traction" and harden your code before real humans arrive.</p>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Bootstrap your app with &quot;synthetic traction&quot; and harden your code before real humans arrive.</p>
           </div>
           <div>
             <h4 style={{ color: 'var(--accent)', fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>For Agents</h4>

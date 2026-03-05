@@ -20,9 +20,6 @@ export async function triggerMatchmaking(campaignId: string) {
         return;
     }
 
-    const tasks = campaign.tasks || [];
-    if (tasks.length === 0) return;
-
     // 2. Find Eligible Managed Bots
     // Filter: Managed, Idle, and matching Campaign Reward
     const { data: idleAgents, error: agentsError } = await supabase
@@ -36,13 +33,42 @@ export async function triggerMatchmaking(campaignId: string) {
         return;
     }
 
-    console.log(`[Matchmaking] Attempting to match ${idleAgents.length} agents to ${tasks.length} tasks...`);
+    // 2. Find Eligible Managed Bots
+    // Filter: Managed, Idle, and matching Campaign Reward
+    const { data: tasks, error: taskErr } = await supabase
+        .from('tasks')
+        .select('*, campaigns(*)')
+        .eq('status', 'active');
 
-    for (const task of tasks) {
+    if (taskErr || !tasks || tasks.length === 0) {
+        console.log('[Matchmaking] No active tasks found.');
+        return;
+    }
+
+    // Filter tasks that still need completions. 
+    // supabase join results are nested. We cast as unknown then to our desired structure.
+    const activeTasks = (tasks as unknown as Array<{
+        id: string;
+        campaign_id: string;
+        title: string;
+        reward_per_task: number;
+        completions_count: number;
+        max_completions: number;
+        campaigns: { reward_per_task: number; status: string; is_deleted: boolean; ends_at: string };
+    }>).filter(t =>
+        t.completions_count < t.max_completions &&
+        t.campaigns.status === 'active' &&
+        !t.campaigns.is_deleted &&
+        (!t.campaigns.ends_at || new Date(t.campaigns.ends_at) > new Date())
+    );
+
+    console.log(`[Matchmaking] Attempting to match ${idleAgents.length} agents to ${activeTasks.length} tasks...`);
+
+    for (const task of activeTasks) {
         // Find agents that meet the min_reward criteria
-        const eligibleAgents = idleAgents.filter(agent => {
+        const eligibleAgents = idleAgents.filter((agent: { id: string; preferences: Record<string, any> | null }) => {
             const preferences = agent.preferences || {};
-            const minReward = preferences.min_reward || 0;
+            const minReward = (preferences as Record<string, any>).min_reward || 0;
             return campaign.reward_per_task >= minReward;
         });
 
@@ -73,6 +99,7 @@ export async function triggerMatchmaking(campaignId: string) {
         }
 
         // 4. Update Agent Status to 'working'
+        console.log(`[Matchmaking] Setting Agent ${selectedAgent.name} to 'working'`);
         await supabase
             .from('agents')
             .update({ status: 'working' })

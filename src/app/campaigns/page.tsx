@@ -8,14 +8,22 @@ export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<(Campaign & { tasks?: { id: string; title: string; completions_count: number; max_completions: number }[] })[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchCampaigns = async () => {
+        try {
+            const res = await fetch('/api/campaigns?status=all');
+            const data = await res.json();
+            setCampaigns(data.campaigns || []);
+        } catch (err) {
+            console.error('Marketplace fetch error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        fetch('/api/campaigns?status=all')
-            .then((res) => res.json())
-            .then((data) => {
-                setCampaigns(data.campaigns || []);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        fetchCampaigns();
+        const interval = setInterval(fetchCampaigns, 8000); // 8s refresh
+        return () => clearInterval(interval);
     }, []);
 
     return (

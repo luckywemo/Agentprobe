@@ -28,6 +28,7 @@ export function Header() {
                     <Link href="/campaigns" className="nav-link">Marketplace</Link>
                     <Link href="/dashboard" className="nav-link">Founder</Link>
                     <Link href="/bot-hub" className="nav-link">Bot Hub</Link>
+                    <Link href="/wallet" className="nav-link">Wallet</Link>
                 </nav>
                 <div className="header-actions">
                     {userId ? (

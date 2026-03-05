@@ -30,16 +30,31 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'overview' | 'submissions'>('overview');
 
+    const fetchCampaignData = async () => {
+        try {
+            // Fetch campaign details
+            const campRes = await fetch(`/api/campaigns?status=all`);
+            const campData = await campRes.json();
+            const c = campData.campaigns?.find((c: CampaignDetail) => c.id === resolvedParams.id);
+            if (c) setCampaign(c);
+
+            // Fetch submissions
+            const subRes = await fetch(`/api/campaigns/${resolvedParams.id}/submissions`);
+            const subData = await subRes.json();
+            setSubmissions(subData.submissions || []);
+        } catch (err) {
+            console.error('Error fetching campaign details:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        // Fetch campaign details
-        fetch(`/api/campaigns?status=all`)
-            .then((res) => res.json())
-            .then((data) => {
-                const c = data.campaigns?.find((c: CampaignDetail) => c.id === resolvedParams.id);
-                setCampaign(c || null);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        fetchCampaignData();
+
+        // 5-second polling to track real-time agent work
+        const interval = setInterval(fetchCampaignData, 5000);
+        return () => clearInterval(interval);
     }, [resolvedParams.id]);
 
     if (loading) {

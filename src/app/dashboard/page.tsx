@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 interface Campaign {
@@ -19,6 +19,8 @@ interface PendingSubmission {
     campaign_id: string;
     agent_wallet: string;
     status: string;
+    bot_feedback_for_campaign?: string;
+    task_result_summary?: string;
     feedback: {
         success: boolean;
         steps_completed: string[];
@@ -35,6 +37,7 @@ export default function DashboardPage() {
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [submissions, setSubmissions] = useState<PendingSubmission[]>([]);
+    const [completedReports, setCompletedReports] = useState<PendingSubmission[]>([]);
     const [balance, setBalance] = useState<string>('0.00');
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -75,7 +78,7 @@ export default function DashboardPage() {
         setAuthLoading(false);
     }
 
-    async function fetchData() {
+    const fetchData = useCallback(async () => {
         if (!walletAddress) return;
         setLoading(true);
         try {
@@ -85,9 +88,14 @@ export default function DashboardPage() {
             setCampaigns(campData.campaigns || []);
 
             // Fetch founder's pending reviews
-            const subRes = await fetch(`/api/admin/review?founder=${walletAddress}`);
+            const subRes = await fetch(`/api/admin/review?founder=${walletAddress}&status=pending`);
             const subData = await subRes.json();
             setSubmissions(subData.submissions || []);
+
+            // Fetch completed bot reports (approved/paid)
+            const reportRes = await fetch(`/api/admin/review?founder=${walletAddress}&status=approved,paid`);
+            const reportData = await reportRes.json();
+            setCompletedReports(reportData.submissions || []);
 
             // Fetch Real-time Balance
             const balRes = await fetch(`/api/wallet/balance?address=${walletAddress}`);
@@ -99,7 +107,7 @@ export default function DashboardPage() {
             console.error('Error fetching dashboard data:', error);
         }
         setLoading(false);
-    }
+    }, [walletAddress]);
 
     useEffect(() => {
         const storedId = localStorage.getItem('agentprobe_user_id');
@@ -113,8 +121,11 @@ export default function DashboardPage() {
     useEffect(() => {
         if (walletAddress) {
             fetchData();
+            // 10-second polling to keep founder dashboard in sync with agents
+            const interval = setInterval(fetchData, 10000);
+            return () => clearInterval(interval);
         }
-    }, [walletAddress]);
+    }, [walletAddress, fetchData]);
 
     async function handleAction(submissionId: string, action: 'approve' | 'reject') {
         setActionLoading(submissionId);
@@ -129,6 +140,21 @@ export default function DashboardPage() {
             console.error('Error processing action:', error);
         }
         setActionLoading(null);
+    }
+
+    async function handleDeleteCampaign(campaignId: string) {
+        if (!confirm('Are you sure you want to delete this campaign? It will be removed from the marketplace.')) return;
+        try {
+            const res = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchData();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to delete campaign');
+            }
+        } catch (err) {
+            console.error('Delete failed:', err);
+        }
     }
 
     if (!userId) {
@@ -167,7 +193,7 @@ export default function DashboardPage() {
                             <select
                                 className="form-input"
                                 value={roleInput}
-                                onChange={(e) => setRoleInput(e.target.value as any)}
+                                onChange={(e) => setRoleInput(e.target.value as 'founder' | 'bot-hub')}
                                 style={{ appearance: 'none' }}
                             >
                                 <option value="founder">Founder (Testing products)</option>
@@ -182,9 +208,6 @@ export default function DashboardPage() {
             </div>
         );
     }
-
-    const totalEscrowed = campaigns.reduce((acc, c) => acc + c.total_budget, 0);
-    const activeTasks = campaigns.length;
 
     return (
         <div className="page-container">
@@ -258,7 +281,7 @@ export default function DashboardPage() {
                         </div>
                     ) : campaigns.length === 0 ? (
                         <div className="card glass-card" style={{ textAlign: 'center', padding: '4rem' }}>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>You haven't launched any campaigns yet.</p>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>You haven&apos;t launched any campaigns yet.</p>
                             <Link href="/campaigns/create" className="btn btn-secondary">Create Your First Campaign</Link>
                         </div>
                     ) : (
@@ -271,9 +294,18 @@ export default function DashboardPage() {
                                             Reward: ${camp.reward_per_task} per task · Status: <span style={{ color: camp.status === 'active' ? 'var(--accent)' : 'var(--warning)' }}>{camp.status}</span>
                                         </p>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 600, fontSize: '1rem' }}>${camp.remaining_budget.toFixed(2)}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Budget Left</div>
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                        <div style={{ textAlign: 'right', marginRight: '1rem' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '1rem' }}>${camp.remaining_budget.toFixed(2)}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Budget Left</div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteCampaign(camp.id)}
+                                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '1rem', padding: '0.5rem' }}
+                                            title="Delete Campaign"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -299,14 +331,29 @@ export default function DashboardPage() {
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
                                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{sub.feedback.scores.usability}/10</div>
+                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{sub.feedback?.scores?.usability}/10</div>
                                             <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>UX Score</div>
                                         </div>
                                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{sub.feedback.duration_seconds}s</div>
+                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{sub.feedback?.duration_seconds}s</div>
                                             <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Speed</div>
                                         </div>
                                     </div>
+
+                                    {sub.task_result_summary && (
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <h5 style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>BOT RESULT:</h5>
+                                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>&quot;{sub.task_result_summary}&quot;</p>
+                                        </div>
+                                    )}
+
+                                    {sub.bot_feedback_for_campaign && (
+                                        <div style={{ marginBottom: '1.25rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
+                                            <h5 style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>AGENT EVALUATION:</h5>
+                                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>&quot;{sub.bot_feedback_for_campaign}&quot;</p>
+                                        </div>
+                                    )}
+
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <button
                                             className="btn btn-secondary"
@@ -330,6 +377,68 @@ export default function DashboardPage() {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* Completed Bot Reports — Full Width */}
+            <div style={{ marginTop: '3rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Bot Reports</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '1.5rem' }}>Feedback from agents who completed your tasks. This persists after approval.</p>
+                {completedReports.length === 0 ? (
+                    <div className="card glass-card" style={{ textAlign: 'center', padding: '2rem' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>No completed reports yet. Bot feedback will appear here after tasks are executed and approved.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1rem' }}>
+                        {completedReports.map(report => (
+                            <div key={report.id} className="card glass-card animate-in" style={{ padding: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                    <h4 style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{report.tasks?.title || 'Task'}</h4>
+                                    <span style={{ fontSize: '0.625rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700, background: report.status === 'paid' ? 'rgba(34,197,94,0.15)' : 'rgba(0,82,255,0.15)', color: report.status === 'paid' ? 'var(--success)' : 'var(--accent)' }}>{report.status.toUpperCase()}</span>
+                                </div>
+
+                                {/* Score Row */}
+                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
+                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.scores?.usability}/10</div>
+                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>UX</div>
+                                    </div>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
+                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.scores?.speed}/10</div>
+                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Speed</div>
+                                    </div>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
+                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.scores?.clarity}/10</div>
+                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Clarity</div>
+                                    </div>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
+                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.duration_seconds}s</div>
+                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Duration</div>
+                                    </div>
+                                </div>
+
+                                {report.task_result_summary && (
+                                    <div style={{ marginBottom: '0.75rem' }}>
+                                        <h5 style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Result</h5>
+                                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>&quot;{report.task_result_summary}&quot;</p>
+                                    </div>
+                                )}
+
+                                {report.bot_feedback_for_campaign && (
+                                    <div style={{ padding: '0.75rem', background: 'rgba(0, 82, 255, 0.05)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
+                                        <h5 style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Agent Evaluation</h5>
+                                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>&quot;{report.bot_feedback_for_campaign}&quot;</p>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                                    <span>Agent: {report.agents?.name || 'Anonymous'}</span>
+                                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <style jsx>{`

@@ -13,18 +13,18 @@ export default function HomePage() {
           <span style={{ color: "var(--accent)" }}>Agentic Verification</span>
         </h1>
         <p>
-          Scale your product testing with autonomous AI agents. 
+          Scale your product testing with autonomous AI agents.
           Login with your User ID and choose your mission profile below.
         </p>
       </section>
 
       {/* Mode Selection Grid */}
       <div className="page-container">
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
           gap: '2.5rem',
-          marginBottom: '6rem' 
+          marginBottom: '6rem'
         }}>
           {/* Founder Mode Card */}
           <div className="card glass-card" style={{ padding: '3.5rem 3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
@@ -79,7 +79,7 @@ export default function HomePage() {
               <div style={{ color: 'var(--accent)', fontSize: '1.5rem', marginBottom: '1rem' }}>⚡</div>
               <h3 style={{ marginBottom: '0.75rem', fontWeight: 700 }}>Instant Settlements</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                Leveraging Base's efficiency, payouts are triggered the moment a submission is approved.
+                Leveraging Base&apos;s efficiency, payouts are triggered the moment a submission is approved.
               </p>
             </div>
           </div>
