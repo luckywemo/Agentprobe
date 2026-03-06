@@ -1,10 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseUnits } from 'viem';
-import { CampaignVaultABI, ERC20ABI } from '@/lib/contract-abi';
-import { CAMPAIGN_VAULT_ADDRESS, getUsdcAddress, USDC_DECIMALS } from '@/lib/config';
+import { useState, useEffect } from 'react';
 
 interface TaskInput {
     title: string;
@@ -13,11 +9,14 @@ interface TaskInput {
 }
 
 export default function CreateCampaignPage() {
-    const { address, isConnected } = useAccount();
-    const { writeContract, data: txHash, isPending } = useWriteContract();
-    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-        hash: txHash,
-    });
+    const [userId, setUserId] = useState<string | null>(null);
+    const [walletAddress, setWalletAddress] = useState<string | null>(null);
+    const [isPending, setIsPending] = useState(false);
+
+    useEffect(() => {
+        setUserId(localStorage.getItem('agentprobe_user_id'));
+        setWalletAddress(localStorage.getItem('agentprobe_wallet_address'));
+    }, []);
 
     const [step, setStep] = useState<'form' | 'approve' | 'deposit' | 'done'>('form');
     const [name, setName] = useState('');
@@ -49,8 +48,8 @@ export default function CreateCampaignPage() {
         e.preventDefault();
         setError('');
 
-        if (!isConnected || !address) {
-            setError('Please connect your wallet first');
+        if (!userId || !walletAddress) {
+            setError('Please login to your founder account first');
             return;
         }
 
@@ -66,40 +65,53 @@ export default function CreateCampaignPage() {
         }
 
         setStep('approve');
+        setIsPending(true);
 
         try {
-            // Step 1: Approve USDC spending
-            const depositAmount = parseUnits(totalBudget, USDC_DECIMALS);
-
-            writeContract({
-                address: getUsdcAddress(),
-                abi: ERC20ABI,
-                functionName: 'approve',
-                args: [CAMPAIGN_VAULT_ADDRESS, depositAmount],
+            // Step 1: Approve USDC spending securely via backend
+            const res = await fetch('/api/campaigns/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, amount: totalBudget }),
             });
-        } catch (err) {
-            setError(`Approval failed: ${err}`);
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Approval failed');
+
+            // Set state for the UI before moving to deposit
+            setIsPending(false);
+            handleDeposit(); // Auto-proceed to deposit for better UX since it's backend-managed
+            
+        } catch (err: any) {
+            setError(`Approval failed: ${err.message}`);
             setStep('form');
+            setIsPending(false);
         }
     }
 
     async function handleDeposit() {
         setStep('deposit');
         setError('');
+        setIsPending(true);
 
         try {
-            const depositAmount = parseUnits(totalBudget, USDC_DECIMALS);
-            const rewardAmount = parseUnits(rewardPerTask, USDC_DECIMALS);
-
-            writeContract({
-                address: CAMPAIGN_VAULT_ADDRESS,
-                abi: CampaignVaultABI,
-                functionName: 'createCampaign',
-                args: [depositAmount, rewardAmount],
+            // Step 2: Deposit into Smart Contract securely via backend
+            const res = await fetch('/api/campaigns/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, depositAmount: totalBudget, rewardAmount: rewardPerTask }),
             });
-        } catch (err) {
-            setError(`Deposit failed: ${err}`);
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Deposit failed');
+            
+            setIsPending(false);
+            saveCampaignToDb(); // Auto-proceed to DB saving
+
+        } catch (err: any) {
+            setError(`Deposit failed: ${err.message}`);
             setStep('approve');
+            setIsPending(false);
         }
     }
 
@@ -110,7 +122,7 @@ export default function CreateCampaignPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    founder_address: address,
+                    founder_address: walletAddress,
                     name,
                     description,
                     product_url: productUrl,
@@ -324,14 +336,13 @@ export default function CreateCampaignPage() {
                     <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>💳</div>
                     <h3>Step 1: Approve USDC</h3>
                     <p style={{ color: 'var(--text-secondary)', margin: '0.75rem 0 1.5rem' }}>
-                        Approve the CampaignVault contract to spend {totalBudget} USDC.
+                        Approving your managed wallet to spend {totalBudget} USDC.
                     </p>
-                    {isPending && <div className="loading-spinner" style={{ margin: '0 auto' }} />}
-                    {isConfirming && <p style={{ color: 'var(--warning)' }}>Confirming transaction...</p>}
-                    {isConfirmed && (
-                        <button className="btn btn-primary" onClick={handleDeposit}>
-                            Next: Deposit USDC →
-                        </button>
+                    {isPending && (
+                        <div>
+                            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+                            <p style={{ color: 'var(--warning)' }}>Processing transaction on Base...</p>
+                        </div>
                     )}
                 </div>
             )}
@@ -341,14 +352,13 @@ export default function CreateCampaignPage() {
                     <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🏦</div>
                     <h3>Step 2: Create Campaign & Deposit</h3>
                     <p style={{ color: 'var(--text-secondary)', margin: '0.75rem 0 1.5rem' }}>
-                        Deposit {totalBudget} USDC into the vault.
+                        Depositing {totalBudget} USDC into the vault.
                     </p>
-                    {isPending && <div className="loading-spinner" style={{ margin: '0 auto' }} />}
-                    {isConfirming && <p style={{ color: 'var(--warning)' }}>Confirming deposit...</p>}
-                    {isConfirmed && (
-                        <button className="btn btn-success" onClick={saveCampaignToDb}>
-                            Finalize Campaign ✓
-                        </button>
+                    {isPending && (
+                        <div>
+                            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+                            <p style={{ color: 'var(--warning)' }}>Confirming deposit...</p>
+                        </div>
                     )}
                 </div>
             )}
