@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         const { data: userData, error: userError } = await supabaseAdmin
             .from('users')
             .select('encrypted_private_key')
-            .eq('id', userId)
+            .eq('user_id', userId)
             .single();
 
         if (userError || !userData?.encrypted_private_key) {
