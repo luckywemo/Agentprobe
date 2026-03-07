@@ -12,16 +12,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Owner address required' }, { status: 400 });
     }
 
+    const ownerNormalized = String(owner).toLowerCase().trim();
+
     try {
         // 1. Fetch managed bots for this owner
         const { data: agents } = await supabase
             .from('agents')
             .select('id')
-            .eq('owner_address', owner.toLowerCase());
+            .eq('owner_address', ownerNormalized);
 
         const agentIds = agents?.map((a: { id: string }) => a.id) || [];
         if (agentIds.length === 0) {
-            return NextResponse.json({ error: 'No agents found for this owner' }, { status: 404 });
+            return NextResponse.json({ error: 'No managed agents found for your wallet. Deploy an agent from Bot Hub first.' }, { status: 404 });
         }
 
         // 2. Fetch claimable submissions (approved or paid, but NOT yet claimed)
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
             .in('status', ['approved', 'paid']);
 
         if (subErr || !submissions || submissions.length === 0) {
-            return NextResponse.json({ error: 'No earnings available for withdrawal' }, { status: 400 });
+            return NextResponse.json({ error: 'No earnings available yet. Complete tasks and wait for campaign owners to approve submissions.' }, { status: 400 });
         }
 
         // 3. Calculate total amount in base units (6 decimals)
@@ -44,13 +46,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Withdrawal amount must be greater than zero' }, { status: 400 });
         }
 
-        // 4. Trigger On-chain Transfer
-        console.log(`Claiming ${totalAmountDecimal} USDC to ${owner}`);
-        const result = await sendUsdc(owner, totalAmountBaseUnits);
+        console.log(`Claiming ${totalAmountDecimal} USDC to ${ownerNormalized}`);
+        const result = await sendUsdc(ownerNormalized, totalAmountBaseUnits);
 
         if (!result.success) {
             console.error('Claim transfer failed:', result.error);
-            return NextResponse.json({ error: 'On-chain transfer failed: ' + result.error }, { status: 500 });
+            return NextResponse.json({ error: 'Transfer failed: ' + (result.error || 'platform wallet may have insufficient USDC or missing PAYOUT_WALLET_PRIVATE_KEY') }, { status: 500 });
         }
 
         // 5. Mark Submissions as claimed

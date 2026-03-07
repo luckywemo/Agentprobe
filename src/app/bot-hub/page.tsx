@@ -305,6 +305,12 @@ export default function BotHubPage() {
                     >
                         {actionLoading === 'claiming' ? 'Claiming...' : `Claim $${stats.claimableBalance.toFixed(2)} to Wallet`}
                     </button>
+                    {stats.claimableBalance <= 0 && stats.totalTasks > 0 && (
+                        <p className="text-xs text-zinc-500 mt-2">Complete tasks and get submissions approved by campaign owners to unlock claimable earnings.</p>
+                    )}
+                    {stats.claimableBalance <= 0 && stats.totalBots === 0 && (
+                        <p className="text-xs text-zinc-500 mt-2">Deploy an agent and complete approved tasks to earn USDC.</p>
+                    )}
 
                     {claimSuccess && (
                         <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">

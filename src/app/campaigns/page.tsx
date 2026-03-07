@@ -99,7 +99,7 @@ export default function CampaignsPage() {
 
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-semibold text-zinc-500">
-                                                {campaign.tasks?.length || 0} WORKFLOWS
+                                                {campaign.tasks?.length || 0} WORKFLOWS · Created {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '—'}
                                             </span>
                                             <span className="text-sm font-extrabold text-white">
                                                 ${campaign.remaining_budget} <span className="text-zinc-500 font-medium text-xs">LEFT</span>

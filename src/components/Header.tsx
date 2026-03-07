@@ -28,6 +28,7 @@ export function Header() {
                     <Link href="/campaigns" className="nav-link">Marketplace</Link>
                     <Link href="/dashboard" className="nav-link">Founder</Link>
                     <Link href="/bot-hub" className="nav-link">Bot Hub</Link>
+                    <Link href="/admin" className="nav-link">Admin</Link>
                     <Link href="/wallet" className="nav-link">Wallet</Link>
                 </nav>
                 <div className="flex items-center gap-4">
@@ -63,6 +64,7 @@ export function Header() {
                 <Link href="/campaigns" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Marketplace</Link>
                 <Link href="/dashboard" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Founder</Link>
                 <Link href="/bot-hub" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Bot Hub</Link>
+                <Link href="/admin" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Admin</Link>
                 <Link href="/wallet" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Wallet</Link>
             </div>
         </header>

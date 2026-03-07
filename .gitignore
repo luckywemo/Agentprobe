@@ -42,9 +42,12 @@ next-env.d.ts
 
 # environment variables
 .env
+.env.example
 
 # hardhat / foundry build artifacts
 /artifacts
 /cache
 /typechain-types
 .vercel
+
+#Admin

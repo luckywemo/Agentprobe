@@ -145,7 +145,11 @@ export default function DashboardPage() {
     async function handleDeleteCampaign(campaignId: string) {
         if (!confirm('Are you sure you want to delete this campaign? It will be removed from the marketplace.')) return;
         try {
-            const res = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' });
+            const res = await fetch(`/api/campaigns/${campaignId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ founder_address: walletAddress }),
+            });
             if (res.ok) {
                 fetchData();
             } else {
@@ -291,6 +295,9 @@ export default function DashboardPage() {
                                         <h3 className="font-bold text-lg">{camp.name}</h3>
                                         <p className="text-sm text-zinc-500 mt-1">
                                             Reward: ${camp.reward_per_task} per task · Status: <span style={{ color: camp.status === 'active' ? 'var(--accent)' : 'var(--warning)' }}>{camp.status}</span>
+                                            {camp.created_at && (
+                                                <> · Created {new Date(camp.created_at).toLocaleDateString(undefined, { dateStyle: 'short' })}</>
+                                            )}
                                         </p>
                                     </div>
                                     <div className="flex justify-between w-full md:w-auto md:justify-end gap-4 items-center border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0 mt-2 md:mt-0">
@@ -314,7 +321,8 @@ export default function DashboardPage() {
 
                 {/* Quick Reviews Sidebar */}
                 <div className="lg:col-span-1">
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Review Hub</h2>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Review Hub</h2>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Approve here to pay agents immediately. Primary review queue for your campaigns.</p>
                     {submissions.length === 0 ? (
                         <div className="card glass-card" style={{ textAlign: 'center', padding: '2rem' }}>
                             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✅</div>
@@ -368,7 +376,7 @@ export default function DashboardPage() {
                                             style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}
                                             onClick={() => handleAction(sub.id, 'approve')}
                                         >
-                                            {actionLoading === sub.id ? '...' : 'Approve'}
+                                            {actionLoading === sub.id ? '...' : 'Approve & pay'}
                                         </button>
                                     </div>
                                 </div>
