@@ -48,9 +48,9 @@ interface AdminCampaign {
 
 function getAdminHeaders(): Record<string, string> {
     if (typeof window === 'undefined') return {};
-    const secret = sessionStorage.getItem(ADMIN_SECRET_KEY);
+    const password = sessionStorage.getItem(ADMIN_PASSWORD_KEY);
     const h: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (secret) h['Admin-Secret'] = secret;
+    if (password) h['Admin-Secret'] = password;
     return h;
 }
 
