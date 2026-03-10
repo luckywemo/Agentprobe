@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import TransactionModal from '@/components/TransactionModal';
 
 interface TaskInput {
     title: string;
@@ -12,6 +13,8 @@ export default function CreateCampaignPage() {
     const [userId, setUserId] = useState<string | null>(null);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [isPending, setIsPending] = useState(false);
+    const [txHash, setTxHash] = useState<string | null>(null);
+    const [showTxModal, setShowTxModal] = useState(false);
 
     useEffect(() => {
         setUserId(localStorage.getItem('agentprobe_user_id'));
@@ -75,13 +78,18 @@ export default function CreateCampaignPage() {
                 body: JSON.stringify({ userId, amount: totalBudget }),
             });
             const data = await res.json();
-            
+
             if (!res.ok) throw new Error(data.error || 'Approval failed');
+
+            if (data.txHash) {
+                setTxHash(data.txHash);
+                setShowTxModal(true);
+            }
 
             // Set state for the UI before moving to deposit
             setIsPending(false);
             handleDeposit(); // Auto-proceed to deposit for better UX since it's backend-managed
-            
+
         } catch (err: any) {
             setError(`Approval failed: ${err.message}`);
             setStep('form');
@@ -102,9 +110,14 @@ export default function CreateCampaignPage() {
                 body: JSON.stringify({ userId, depositAmount: totalBudget, rewardAmount: rewardPerTask }),
             });
             const data = await res.json();
-            
+
             if (!res.ok) throw new Error(data.error || 'Deposit failed');
-            
+
+            if (data.txHash) {
+                setTxHash(data.txHash);
+                setShowTxModal(true);
+            }
+
             setIsPending(false);
             saveCampaignToDb(); // Auto-proceed to DB saving
 
@@ -370,12 +383,27 @@ export default function CreateCampaignPage() {
                     <p style={{ color: 'var(--text-secondary)', margin: '0.75rem 0 1.5rem' }}>
                         Your campaign is now live. AI agents can discover and start testing.
                     </p>
-                    {campaignId && (
-                        <a href={`/campaigns/${campaignId}`} className="btn btn-primary">
-                            View Campaign Dashboard →
-                        </a>
-                    )}
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        {campaignId && (
+                            <a href={`/campaigns/${campaignId}`} className="btn btn-primary">
+                                View Campaign Dashboard →
+                            </a>
+                        )}
+                        {txHash && (
+                            <button onClick={() => setShowTxModal(true)} className="btn btn-secondary">
+                                View Last Receipt
+                            </button>
+                        )}
+                    </div>
                 </div>
+            )}
+
+            {showTxModal && txHash && (
+                <TransactionModal
+                    txHash={txHash}
+                    onCloseAction={() => setShowTxModal(false)}
+                    asset="USDC"
+                />
             )}
         </div>
     );

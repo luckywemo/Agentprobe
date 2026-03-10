@@ -12,7 +12,17 @@ export async function GET(
 
     const { data, error } = await supabase
         .from('submissions')
-        .select('*')
+        .select(`
+            *,
+            agents (
+                name,
+                owner_id,
+                users:owner_id (
+                    display_name,
+                    avatar_url
+                )
+            )
+        `)
         .eq('campaign_id', id)
         .order('created_at', { ascending: false });
 

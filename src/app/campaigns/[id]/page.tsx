@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import type { Submission } from '@/lib/supabase';
+import CountdownTimer from '@/components/CountdownTimer';
 
 interface CampaignDetail {
     id: string;
@@ -12,6 +13,7 @@ interface CampaignDetail {
     total_budget: number;
     remaining_budget: number;
     status: string;
+    ends_at: string | null;
     created_at: string;
     tasks: {
         id: string;
@@ -76,8 +78,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         );
     }
 
-    const totalTasks = campaign.tasks?.reduce((sum, t) => sum + t.max_completions, 0) || 0;
-    const completedTasks = campaign.tasks?.reduce((sum, t) => sum + t.completions_count, 0) || 0;
+    const totalTasks = campaign.tasks?.reduce((sum: number, t: any) => sum + t.max_completions, 0) || 0;
+    const completedTasks = campaign.tasks?.reduce((sum: number, t: any) => sum + t.completions_count, 0) || 0;
 
     return (
         <div className="page-container animate-in">
@@ -94,22 +96,28 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             {/* Pro-Tech Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
                 <div className="card text-center p-4 md:p-6">
-                    <div className="text-2xl md:text-3xl font-black text-green-500 mb-2">{completedTasks}</div>
+                    <div className="text-2xl md:text-3xl font-black text-white mb-2">{completedTasks}</div>
                     <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Tasks Completed</div>
                 </div>
                 <div className="card text-center p-4 md:p-6">
                     <div className="text-2xl md:text-3xl font-black mb-2">{totalTasks - completedTasks}</div>
-                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Remaining</div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Remaining Tasks</div>
                 </div>
                 <div className="card text-center p-4 md:p-6">
-                    <div className="text-2xl md:text-3xl font-black text-blue-500 mb-2">${campaign.remaining_budget}</div>
+                    <div className="text-2xl md:text-3xl font-black text-white mb-2">${campaign.remaining_budget}</div>
                     <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">USDC Available</div>
                 </div>
                 <div className="card text-center p-4 md:p-6">
                     <div className="text-2xl md:text-3xl font-black mb-2">{campaign.reward_per_task}</div>
                     <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">USDC Per Task</div>
+                </div>
+                <div className="card text-center p-4 md:p-6 border-white/30 bg-white/5">
+                    <div className="text-xl md:text-2xl font-black mb-2">
+                        <CountdownTimer endsAt={campaign.ends_at} />
+                    </div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Time Remaining</div>
                 </div>
             </div>
 
@@ -120,7 +128,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`pb-4 text-sm font-bold uppercase tracking-wider whitespace-nowrap transition-colors border-b-2
-                            ${activeTab === tab ? 'text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
+                            ${activeTab === tab ? 'text-white border-white' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
                     >
                         {tab}
                     </button>
@@ -144,8 +152,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
                     <h3 className="text-lg font-bold mb-6">Active Tasks ({campaign.tasks?.length || 0})</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {campaign.tasks?.map((task) => (
-                            <div key={task.id} className="card flex flex-col">
+                        {campaign.tasks?.map((task: any, idx: number) => (
+                            <div key={task.id} className={`card animate-stagger stagger-${(idx % 5) + 1} hover-lift flex flex-col`}>
                                 <div className="flex justify-between items-start mb-4 gap-2">
                                     <h4 className="text-lg font-bold">{task.title}</h4>
                                     <span className={`badge whitespace-nowrap text-[10px] ${task.status === 'open' ? 'badge-success' : 'badge-pending'}`}>
@@ -163,7 +171,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                                     </div>
                                     <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out"
+                                            className="h-full bg-white rounded-full transition-all duration-1000 ease-out"
                                             style={{ width: `${(task.completions_count / task.max_completions) * 100}%` }}
                                         />
                                     </div>
@@ -195,31 +203,44 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-zinc-800">
-                                    {submissions.map((sub) => (
-                                        <tr key={sub.id} className="hover:bg-zinc-900/50 transition-colors">
-                                            <td className="px-6 py-5 font-bold text-white">
-                                                {sub.agent_wallet.slice(0, 10)}...
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <span className={`badge ${sub.status === 'approved' ? 'badge-success' : sub.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`}>
-                                                    {sub.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex gap-2">
-                                                    <div className="bg-zinc-900 px-3 py-1 rounded text-xs">
-                                                        <span className="text-zinc-500">UX:</span> <span className="text-blue-500 font-bold">{sub.feedback.scores.usability}</span>
+                                    {submissions.map((sub: any, idx: number) => {
+                                        const owner = sub.agents?.users;
+                                        const displayName = owner?.display_name || sub.agent_wallet.slice(0, 10) + '...';
+                                        const avatar = owner?.avatar_url;
+
+                                        return (
+                                            <tr key={sub.id} className={`hover:bg-zinc-900/50 transition-colors animate-stagger stagger-${(idx % 6) + 1}`}>
+                                                <td className="px-6 py-5 font-bold text-white flex items-center gap-3">
+                                                    <div className="w-6 h-6 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center border border-white/5 flex-shrink-0">
+                                                        {avatar ? (
+                                                            <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-[8px] text-zinc-500">{displayName[0].toUpperCase()}</span>
+                                                        )}
                                                     </div>
-                                                    <div className="bg-zinc-900 px-3 py-1 rounded text-xs">
-                                                        <span className="text-zinc-500">SPD:</span> <span className="text-blue-500 font-bold">{sub.feedback.scores.speed}</span>
+                                                    <span className="truncate max-w-[120px]">{displayName}</span>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <span className={`badge ${sub.status === 'approved' ? 'badge-success' : sub.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`}>
+                                                        {sub.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex gap-2">
+                                                        <div className="bg-zinc-900 px-3 py-1 rounded text-xs">
+                                                            <span className="text-zinc-500">UX:</span> <span className="text-white font-bold">{sub.feedback.scores.usability}</span>
+                                                        </div>
+                                                        <div className="bg-zinc-900 px-3 py-1 rounded text-xs">
+                                                            <span className="text-zinc-500">SPD:</span> <span className="text-white font-bold">{sub.feedback.scores.speed}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-5 text-zinc-400">
-                                                {new Date(sub.created_at).toLocaleDateString()}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="px-6 py-5 text-zinc-400">
+                                                    {new Date(sub.created_at).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

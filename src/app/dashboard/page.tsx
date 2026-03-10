@@ -47,9 +47,11 @@ export default function DashboardPage() {
     const [passwordInput, setPasswordInput] = useState('');
     const [roleInput, setRoleInput] = useState<'founder' | 'bot-hub'>('founder');
     const [authLoading, setAuthLoading] = useState(false);
+    const [onboardingStep, setOnboardingStep] = useState(1);
+    const [isLoginMode, setIsLoginMode] = useState(false);
 
     async function handleLogin(e: React.FormEvent) {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setAuthLoading(true);
         try {
             const res = await fetch('/api/auth/managed', {
@@ -63,6 +65,7 @@ export default function DashboardPage() {
             });
             const data = await res.json();
             if (res.ok) {
+                localStorage.setItem('agentprobe_id', data.id);
                 localStorage.setItem('agentprobe_user_id', data.user_id);
                 localStorage.setItem('agentprobe_wallet_address', data.wallet_address);
                 localStorage.setItem('agentprobe_role', data.role);
@@ -161,168 +164,229 @@ export default function DashboardPage() {
         }
     }
 
-    const [onboardingStep, setOnboardingStep] = useState(1);
-
     if (!userId) {
         return (
-            <div className="page-container" style={{ textAlign: 'center', padding: '100px 2rem', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{
-                    width: '64px',
-                    height: '64px',
-                    border: '2px solid white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                    marginBottom: '2rem',
-                    fontSize: '1.5rem',
-                    color: 'white'
-                }}>
+            <div className="page-container" style={{ textAlign: 'center', padding: '100px 2rem', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+                <div className="glass-noise-moving"></div>
+
+                <div className="logo-hexagon mb-8 animate-float">
                     ⬢
                 </div>
 
-                <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '0.5rem', letterSpacing: '-0.03em' }}>Welcome to AgentProbe</h1>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.125rem' }}>
-                    Let&apos;s get you started in just a few steps
+                <h1 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '0.5rem', letterSpacing: '-0.04em', background: 'linear-gradient(to bottom, #fff, #666)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    AgentProbe
+                </h1>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.25rem', fontWeight: 500 }}>
+                    The Intelligence Layer for Onchain Testing
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem' }}>
-                    {[1, 2, 3].map((s) => (
-                        <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                background: onboardingStep >= s ? 'white' : 'transparent',
-                                border: '1px solid white',
-                                color: onboardingStep >= s ? 'black' : 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.875rem',
-                                fontWeight: 800
-                            }}>
-                                {s}
-                            </div>
-                            {s < 3 && <div style={{ width: '60px', height: '1px', background: onboardingStep > s ? 'white' : 'var(--border)' }}></div>}
+                {!isLoginMode ? (
+                    <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem' }} className="animate-in">
+                            {[1, 2, 3].map((s) => (
+                                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        background: onboardingStep >= s ? 'white' : 'transparent',
+                                        border: '1px solid white',
+                                        color: onboardingStep >= s ? 'black' : 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.875rem',
+                                        fontWeight: 800
+                                    }}>
+                                        {s}
+                                    </div>
+                                    {s < 3 && <div style={{ width: '60px', height: '1px', background: onboardingStep > s ? 'white' : 'var(--border)' }}></div>}
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
 
-                {onboardingStep === 1 && (
-                    <div className="card" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '700px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)' }}>
-                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Choose Your Role</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem' }}>
-                            Are you creating testing campaigns or running AI agents?
+                        {onboardingStep === 1 && (
+                            <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '700px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
+                                <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Choose Your Role</h2>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem' }}>
+                                    Are you creating testing campaigns or running AI agents?
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '3rem' }}>
+                                    <div
+                                        onClick={() => setRoleInput('founder')}
+                                        className="hover-lift"
+                                        style={{
+                                            padding: '2.5rem 1.5rem',
+                                            background: roleInput === 'founder' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                                            border: roleInput === 'founder' ? '2px solid white' : '1px solid var(--border)',
+                                            borderRadius: '16px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🎯</div>
+                                        <h3 style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Founder</h3>
+                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Create campaigns and manage testing tasks</p>
+                                    </div>
+                                    <div
+                                        onClick={() => setRoleInput('bot-hub')}
+                                        className="hover-lift"
+                                        style={{
+                                            padding: '2.5rem 1.5rem',
+                                            background: roleInput === 'bot-hub' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                                            border: roleInput === 'bot-hub' ? '2px solid white' : '1px solid var(--border)',
+                                            borderRadius: '16px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🤖</div>
+                                        <h3 style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Agent Operator</h3>
+                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Deploy AI agents to earn USDC rewards</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setOnboardingStep(2)}
+                                    className="btn btn-primary"
+                                    style={{ width: '100%', padding: '1.25rem', borderRadius: '12px' }}
+                                >
+                                    Continue
+                                </button>
+
+                                <p style={{ marginTop: '2rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                    Already have an account? <button onClick={() => setIsLoginMode(true)} style={{ color: 'white', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Log In</button>
+                                </p>
+                            </div>
+                        )}
+
+                        {onboardingStep === 2 && (
+                            <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
+                                <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Secure Identity</h2>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Create a managed account to interact with Base</p>
+
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    setAuthLoading(true);
+                                    // In a real app, this would hit the registration API
+                                    // For now, let's just proceed to success screen
+                                    setTimeout(() => {
+                                        setOnboardingStep(3);
+                                        setAuthLoading(false);
+                                    }, 800);
+                                }} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left' }}>
+                                    <div>
+                                        <label className="form-label">Username</label>
+                                        <input className="form-input" placeholder="yourname" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <label className="form-label">Password</label>
+                                        <input type="password" className="form-input" placeholder="Create a secure password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                        <button type="button" onClick={() => setOnboardingStep(1)} className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }}>Back</button>
+                                        <button type="submit" disabled={authLoading} className="btn btn-primary" style={{ flex: 2, padding: '1rem' }}>
+                                            {authLoading ? '...' : 'Create Account'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {onboardingStep === 3 && (
+                            <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '4rem 3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
+                                <div style={{
+                                    width: '80px',
+                                    height: '80px',
+                                    borderRadius: '50%',
+                                    background: 'white',
+                                    color: 'black',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '2.5rem',
+                                    margin: '0 auto 2rem',
+                                    boxShadow: '0 0 30px rgba(255,255,255,0.2)'
+                                }}>
+                                    ✓
+                                </div>
+                                <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '1rem' }}>Account Created!</h2>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.125rem' }}>
+                                    You&apos;re ready to start {roleInput === 'founder' ? 'creating campaigns' : 'running agents'}.
+                                </p>
+
+                                <button
+                                    onClick={() => handleLogin(null as any)}
+                                    className="btn btn-primary"
+                                    style={{ width: '100%', padding: '1.25rem', borderRadius: '12px' }}
+                                >
+                                    Go to Dashboard
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '500px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Welcome Back</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>
+                            Sign in to your AgentProbe account
                         </p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '3rem' }}>
-                            <div
-                                onClick={() => setRoleInput('founder')}
-                                style={{
-                                    padding: '2.5rem 1.5rem',
-                                    background: roleInput === 'founder' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                                    border: roleInput === 'founder' ? '2px solid white' : '1px solid var(--border)',
-                                    borderRadius: '16px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🎯</div>
-                                <h3 style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Founder</h3>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Create campaigns and manage testing tasks</p>
-                            </div>
-                            <div
-                                onClick={() => setRoleInput('bot-hub')}
-                                style={{
-                                    padding: '2.5rem 1.5rem',
-                                    background: roleInput === 'bot-hub' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                                    border: roleInput === 'bot-hub' ? '2px solid white' : '1px solid var(--border)',
-                                    borderRadius: '16px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🤖</div>
-                                <h3 style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Agent Operator</h3>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Deploy AI agents to earn USDC rewards</p>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => setOnboardingStep(2)}
-                            className="btn btn-primary"
-                            style={{ width: '100%', padding: '1.25rem', background: 'white', color: 'black', fontWeight: 800, borderRadius: '12px' }}
-                        >
-                            Continue
-                        </button>
-                    </div>
-                )}
-
-                {onboardingStep === 2 && (
-                    <div className="card" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)' }}>
-                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Connect Wallet</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Connect your wallet to manage USDC payments on Base</p>
-
-                        <div style={{ background: 'rgba(0, 82, 255, 0.03)', border: '1px solid var(--border)', padding: '2rem', borderRadius: '16px', marginBottom: '2.5rem' }}>
-                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🛡️</div>
-                            <h3 style={{ fontWeight: 800, fontSize: '1.125rem', marginBottom: '0.5rem' }}>Secure Managed Wallet</h3>
-                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>We&apos;ll create a secure managed wallet for you. No private keys to manage!</p>
-                        </div>
-
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            setAuthLoading(true);
-                            // Simulating account creation for UI flow
-                            setTimeout(() => {
-                                setOnboardingStep(3);
-                                setAuthLoading(false);
-                            }, 800);
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left' }}>
+                        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left' }}>
                             <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase' }}>Username</label>
-                                <input className="form-input" placeholder="yourname" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} required style={{ background: 'rgba(255,255,255,0.03)' }} />
+                                <label className="form-label">Username</label>
+                                <input className="form-input" placeholder="yourname" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} required />
                             </div>
                             <div>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase' }}>Password</label>
-                                <input type="password" className="form-input" placeholder="Create a secure password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required style={{ background: 'rgba(255,255,255,0.03)' }} />
+                                <label className="form-label">Password</label>
+                                <input type="password" className="form-input" placeholder="Your password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required />
                             </div>
+
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button type="button" onClick={() => setOnboardingStep(1)} className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }}>Back</button>
-                                <button type="submit" disabled={authLoading} className="btn btn-primary" style={{ flex: 2, background: 'white', color: 'black', fontWeight: 800, padding: '1rem' }}>
-                                    {authLoading ? '...' : 'Create Account'}
+                                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px', border: '1px solid var(--border)', flex: 1 }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRoleInput('founder')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.6rem',
+                                            borderRadius: '8px',
+                                            background: roleInput === 'founder' ? 'white' : 'transparent',
+                                            color: roleInput === 'founder' ? 'black' : 'white',
+                                            fontWeight: 800,
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '0.75rem'
+                                        }}
+                                    >
+                                        Founder
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRoleInput('bot-hub')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.6rem',
+                                            borderRadius: '8px',
+                                            background: roleInput === 'bot-hub' ? 'white' : 'transparent',
+                                            color: roleInput === 'bot-hub' ? 'black' : 'white',
+                                            fontWeight: 800,
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '0.75rem'
+                                        }}
+                                    >
+                                        Bot Owner
+                                    </button>
+                                </div>
+                                <button type="submit" disabled={authLoading} className="btn btn-primary" style={{ flex: 1.5, padding: '1rem' }}>
+                                    {authLoading ? '...' : 'Log In'}
                                 </button>
                             </div>
                         </form>
-                    </div>
-                )}
 
-                {onboardingStep === 3 && (
-                    <div className="card" style={{ background: 'rgba(255,255,255,0.02)', padding: '4rem 3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)' }}>
-                        <div style={{
-                            width: '80px',
-                            height: '80px',
-                            borderRadius: '50%',
-                            background: '#22C55E',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '2.5rem',
-                            margin: '0 auto 2rem'
-                        }}>
-                            ✓
-                        </div>
-                        <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '1rem' }}>You&apos;re All Set!</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.125rem' }}>
-                            Browse available tasks and deploy your agents
+                        <p style={{ marginTop: '2rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            Need an account? <button onClick={() => setIsLoginMode(false)} style={{ color: 'white', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Create One</button>
                         </p>
-
-                        <button
-                            onClick={handleLogin}
-                            className="btn btn-primary"
-                            style={{ width: '100%', padding: '1.25rem', background: 'white', color: 'black', fontWeight: 800, borderRadius: '12px' }}
-                        >
-                            Browse Tasks
-                        </button>
                     </div>
                 )}
             </div>
@@ -373,17 +437,17 @@ export default function DashboardPage() {
 
             {/* Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="card animate-stagger stagger-1 hover-lift" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Active Campaigns</div>
                         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{campaigns.filter(c => c.status === 'active').length}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Live on Hub</div>
+                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>Live on Hub</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                         🎯
                     </div>
                 </div>
-                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="card animate-stagger stagger-2 hover-lift" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Total Budget</div>
                         <div style={{ fontSize: '2rem', fontWeight: 800 }}>${campaigns.reduce((sum, c) => sum + (c.total_budget || 0), 0).toLocaleString()}</div>
@@ -393,23 +457,23 @@ export default function DashboardPage() {
                         $
                     </div>
                 </div>
-                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="card animate-stagger stagger-3 hover-lift" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Verified Reports</div>
                         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{completedReports.length}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Full bot feedback</div>
+                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>Full bot feedback</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                         ✓
                     </div>
                 </div>
-                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="card animate-stagger stagger-4 hover-lift" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Unique Agents</div>
                         <div style={{ fontSize: '2rem', fontWeight: 800 }}>
                             {new Set([...submissions, ...completedReports].map(s => s.agent_wallet)).size}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Network reach</div>
+                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>Network reach</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                         🤖
@@ -419,30 +483,30 @@ export default function DashboardPage() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Your Campaigns</h2>
-                <Link href="/campaigns/create" className="btn" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.875rem' }}>
+                <Link href="/campaigns/create" className="btn hover-lift" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.875rem' }}>
                     + New Campaign
                 </Link>
             </div>
 
             {loading ? (
-                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
+                <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
                     <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
                 </div>
             ) : campaigns.length === 0 ? (
-                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
+                <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>You haven&apos;t launched any campaigns yet.</p>
-                    <Link href="/campaigns/create" className="btn btn-secondary">Create Your First Campaign</Link>
+                    <Link href="/campaigns/create" className="btn btn-secondary hover-lift">Create Your First Campaign</Link>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {campaigns.map(camp => {
+                    {campaigns.map((camp, idx) => {
                         const spent = camp.total_budget - camp.remaining_budget;
                         const progress = Math.min(100, Math.round((spent / camp.total_budget) * 100));
                         const tasksPossible = Math.floor(camp.total_budget / (camp.reward_per_task || 1));
                         const tasksDone = Math.floor(spent / (camp.reward_per_task || 1));
 
                         return (
-                            <div key={camp.id} className="card" style={{
+                            <div key={camp.id} className={`card animate-stagger stagger-${(idx % 5) + 1} hover-lift`} style={{
                                 background: 'rgba(255,255,255,0.02)',
                                 border: '1px solid var(--border)',
                                 borderRadius: '24px',
@@ -455,12 +519,12 @@ export default function DashboardPage() {
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                                         <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>{camp.name}</h3>
-                                        <span style={{
+                                        <span className={camp.status === 'active' ? 'animate-pulse-subtle' : ''} style={{
                                             fontSize: '0.625rem',
                                             fontWeight: 800,
                                             padding: '0.2rem 0.6rem',
-                                            background: camp.status === 'active' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255,255,255,0.05)',
-                                            color: camp.status === 'active' ? '#22C55E' : 'var(--text-muted)',
+                                            background: camp.status === 'active' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255,255,255,0.05)',
+                                            color: camp.status === 'active' ? 'white' : 'var(--text-muted)',
                                             borderRadius: '100px',
                                             textTransform: 'uppercase'
                                         }}>
@@ -505,7 +569,7 @@ export default function DashboardPage() {
                                     </Link>
                                     <button
                                         onClick={() => handleDeleteCampaign(camp.id)}
-                                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', opacity: 0.6, fontSize: '1.25rem' }}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0.8, fontSize: '1.25rem' }}
                                         title="Delete Campaign"
                                     >
                                         🗑️
@@ -517,15 +581,6 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            <style jsx>{`
-                .animate-in {
-                    animation: fadeIn 0.5s ease-out forwards;
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
         </div>
     );
 }

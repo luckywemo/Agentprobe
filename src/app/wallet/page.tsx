@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import TransactionModal from '@/components/TransactionModal';
 
 interface Balances {
     eth: string;
@@ -18,6 +19,8 @@ export default function WalletPage() {
     const [txHash, setTxHash] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [selectedTab, setSelectedTab] = useState<'overview' | 'transactions' | 'withdraw'>('overview');
+    const [showHistoryTx, setShowHistoryTx] = useState(false);
+    const [selectedHistoryTx, setSelectedHistoryTx] = useState<string | null>(null);
 
     const [hubData, setHubData] = useState<{ agents: any[], activities: any[], stats: any } | null>(null);
     const [hubLoading, setHubLoading] = useState(false);
@@ -91,6 +94,8 @@ export default function WalletPage() {
 
             if (res.ok) {
                 setTxHash(data.txHash);
+                setSelectedHistoryTx(data.txHash);
+                setShowHistoryTx(true);
                 setAmount('');
                 setRecipient('');
                 fetchBalances();
@@ -124,10 +129,10 @@ export default function WalletPage() {
     }
 
     const realStats = [
-        { label: 'Total Earned', value: `$${hubData?.stats.totalEarnings.toLocaleString() || '0'}`, trend: 'All-time earnings', icon: '$', trendColor: '#22C55E' },
-        { label: 'Claimable', value: `$${hubData?.stats.claimableBalance.toLocaleString() || '0'}`, trend: 'Available to withdraw', icon: '↗', trendColor: '#22C55E' },
+        { label: 'Total Earned', value: `$${hubData?.stats.totalEarnings.toLocaleString() || '0'}`, trend: 'All-time earnings', icon: '$', trendColor: 'white' },
+        { label: 'Claimable', value: `$${hubData?.stats.claimableBalance.toLocaleString() || '0'}`, trend: 'Available to withdraw', icon: '↗', trendColor: 'white' },
         { label: 'Active Bots', value: hubData?.stats.workingBots.toString() || '0', trend: `${hubData?.stats.totalBots || 0} bots total`, icon: '🤖', trendColor: 'white' },
-        { label: 'Total Tasks', value: hubData?.stats.totalTasks.toString() || '0', trend: 'Submissions made', icon: '✓', trendColor: '#22C55E' }
+        { label: 'Total Tasks', value: hubData?.stats.totalTasks.toString() || '0', trend: 'Submissions made', icon: '✓', trendColor: 'white' }
     ];
 
     return (
@@ -276,15 +281,26 @@ export default function WalletPage() {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {hubData?.activities.map((tx: any) => (
-                                <div key={tx.id} className="card" style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: '20px',
-                                    padding: '1.25rem 1.5rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}>
+                                <div key={tx.id}
+                                    onClick={() => {
+                                        if (tx.payout_tx_hash) {
+                                            setSelectedHistoryTx(tx.payout_tx_hash);
+                                            setShowHistoryTx(true);
+                                        }
+                                    }}
+                                    className="card"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '20px',
+                                        padding: '1.25rem 1.5rem',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        cursor: tx.payout_tx_hash ? 'pointer' : 'default',
+                                        transition: '0.2s'
+                                    }}
+                                >
                                     <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
                                         <div style={{
                                             width: '44px',
@@ -295,7 +311,7 @@ export default function WalletPage() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             fontSize: '1.25rem',
-                                            color: tx.status === 'paid' || tx.status === 'claimed' ? '#22C55E' : '#EF4444'
+                                            color: tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved' ? 'white' : 'var(--text-muted)'
                                         }}>
                                             {tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved' ? '↙' : '↗'}
                                         </div>
@@ -309,15 +325,15 @@ export default function WalletPage() {
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: (tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved') ? '#22C55E' : 'white' }}>
+                                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: (tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved') ? 'white' : 'var(--text-muted)' }}>
                                             {(tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved') ? '+' : '-'}${tx.campaigns?.reward_per_task || '0'} USDC
                                         </div>
                                         <div style={{
                                             fontSize: '0.625rem',
                                             fontWeight: 800,
                                             padding: '0.2rem 0.6rem',
-                                            background: tx.status === 'paid' || tx.status === 'claimed' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255,255,255,0.05)',
-                                            color: tx.status === 'paid' || tx.status === 'claimed' ? '#22C55E' : 'var(--text-muted)',
+                                            background: tx.status === 'paid' || tx.status === 'claimed' ? 'rgba(255, 255, 255, 0.1)' : tx.status === 'approved' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255,255,255,0.05)',
+                                            color: tx.status === 'paid' || tx.status === 'claimed' ? 'white' : tx.status === 'approved' ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)',
                                             borderRadius: '100px',
                                             display: 'inline-block',
                                             marginTop: '0.5rem',
@@ -325,6 +341,11 @@ export default function WalletPage() {
                                         }}>
                                             {tx.status}
                                         </div>
+                                        {!tx.payout_tx_hash && (tx.status === 'paid' || tx.status === 'approved') && (
+                                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                                                Receipt pending...
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -376,14 +397,21 @@ export default function WalletPage() {
                             </div>
                         </div>
 
-                        {error && <div style={{ color: '#EF4444', fontSize: '0.875rem' }}>{error}</div>}
-                        {txHash && <div style={{ color: '#22C55E', fontSize: '0.875rem' }}>Success! Tx: {txHash}</div>}
+                        {error && <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{error}</div>}
+                        {txHash && <div style={{ color: 'white', fontSize: '0.875rem' }}>Success! Tx: {txHash}</div>}
 
                         <button type="submit" disabled={sending} className="btn" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '1rem', borderRadius: '12px', marginTop: '1rem' }}>
                             {sending ? 'Processing...' : `Withdraw ${amount || '0.00'} ${asset}`}
                         </button>
                     </form>
                 </div>
+            )}
+            {showHistoryTx && selectedHistoryTx && (
+                <TransactionModal
+                    txHash={selectedHistoryTx}
+                    onCloseAction={() => setShowHistoryTx(false)}
+                    asset="USDC"
+                />
             )}
         </div>
     );

@@ -223,9 +223,10 @@ export default function BotHubPage() {
 
     if (!userId) {
         return (
-            <div className="page-container" style={{ textAlign: 'center', padding: '6rem 2rem' }}>
-                <div className="card glass-card animate-in" style={{ padding: '3.5rem', maxWidth: '450px', margin: '0 auto', border: '1px solid var(--border)', borderRadius: '24px' }}>
-                    <div style={{ fontSize: '3.5rem', marginBottom: '1.5rem' }}>🤖</div>
+            <div className="page-container" style={{ textAlign: 'center', padding: '6rem 2rem', position: 'relative', overflow: 'hidden' }}>
+                <div className="glass-noise-moving"></div>
+                <div className="card glass-card animate-in" style={{ padding: '3.5rem', maxWidth: '450px', margin: '0 auto', border: '1px solid var(--border)', borderRadius: '24px', position: 'relative', zIndex: 1 }}>
+                    <div className="logo-hexagon mb-8 animate-float" style={{ margin: '0 auto 2rem' }}>⬢</div>
                     <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Agent Hub Access</h1>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
                         Sign in or create your account. Your agents earn USDC directly into your managed treasury.
@@ -264,7 +265,8 @@ export default function BotHubPage() {
     }
 
     return (
-        <div className="page-container animate-in" style={{ paddingBottom: '100px' }}>
+        <div className="page-container animate-in" style={{ paddingBottom: '100px', position: 'relative', overflow: 'hidden' }}>
+            <div className="glass-noise-moving"></div>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', marginTop: '2rem' }}>
                 <div>
@@ -272,11 +274,9 @@ export default function BotHubPage() {
                     <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Manage your AI agents and claim tasks</p>
                 </div>
                 <button
-                    className="btn"
+                    className="btn btn-primary hover-lift"
                     onClick={() => setShowDeploy(true)}
                     style={{
-                        background: 'white',
-                        color: 'black',
                         padding: '0.75rem 1.5rem',
                         borderRadius: '12px',
                         fontWeight: 700,
@@ -295,7 +295,7 @@ export default function BotHubPage() {
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Active Agents</div>
                         <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.totalBots}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Managed Agents</div>
+                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>Managed Agents</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '12px' }}>🤖</div>
                 </div>
@@ -303,7 +303,7 @@ export default function BotHubPage() {
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Total Earned</div>
                         <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>${stats.totalEarnings.toLocaleString()}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>USDC on Base</div>
+                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>USDC on Base</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '12px' }}>💰</div>
                 </div>
@@ -379,7 +379,7 @@ export default function BotHubPage() {
                                     </div>
                                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: '1.25rem', maxWidth: '600px' }}>{camp.description || 'No description provided.'}</p>
                                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                                        <div style={{ color: '#22C55E', fontWeight: 800, fontSize: '0.875rem' }}>$ {camp.reward_per_task} USDC</div>
+                                        <div style={{ color: 'white', fontWeight: 800, fontSize: '0.875rem' }}>$ {camp.reward_per_task} USDC</div>
                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                                             🔗 {(() => {
                                                 try {
@@ -395,7 +395,7 @@ export default function BotHubPage() {
                                             padding: '0.2rem 0.5rem',
                                             borderRadius: '6px',
                                             background: camp.total_budget > 1000 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                                            color: camp.total_budget > 1000 ? '#F59E0B' : '#22C55E',
+                                            color: camp.total_budget > 1000 ? 'white' : 'rgba(255,255,255,0.7)',
                                         }}>
                                             {camp.total_budget > 1000 ? 'PRIORITY' : 'OPEN'}
                                         </div>
@@ -438,7 +438,7 @@ export default function BotHubPage() {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: agent.status === 'working' ? '#22C55E' : 'white' }}>{agent.status.toUpperCase()}</div>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: agent.status === 'working' ? 'white' : 'var(--text-muted)' }}>{agent.status.toUpperCase()}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Score: {agent.reputation_score}/10</div>
                                 </div>
                             </div>
@@ -459,7 +459,7 @@ export default function BotHubPage() {
                         <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white' }}>${stats.claimableBalance.toLocaleString()} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>USDC</span></div>
                     </div>
                     <div style={{ marginTop: '2rem' }}>
-                        <a href="/wallet" className="btn" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '1rem 2rem', borderRadius: '12px', textDecoration: 'none' }}>Go to Wallet</a>
+                        <a href="/wallet" className="btn btn-primary hover-lift" style={{ fontWeight: 800, padding: '1rem 2.5rem', borderRadius: '12px', textDecoration: 'none' }}>Go to Wallet</a>
                     </div>
                 </div>
             )}

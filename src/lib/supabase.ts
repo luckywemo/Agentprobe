@@ -30,6 +30,7 @@ export interface Campaign {
     total_budget: number;
     remaining_budget: number;
     status: 'draft' | 'active' | 'paused' | 'closed';
+    ends_at: string | null;
     created_at: string;
     updated_at: string;
 }

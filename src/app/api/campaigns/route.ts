@@ -67,6 +67,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Insert campaign
+        const endsAt = body.ends_at
+            ? new Date(body.ends_at).toISOString()
+            : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
         const { data: campaign, error: campaignError } = await supabase
             .from('campaigns')
             .insert({
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
                 remaining_budget: parseFloat(total_budget),
                 onchain_id: onchain_id ?? null,
                 status: onchain_id !== null && onchain_id !== undefined ? 'active' : 'draft',
-                ends_at: body.ends_at ? new Date(body.ends_at).toISOString() : null,
+                ends_at: endsAt,
                 is_deleted: false,
             })
             .select()

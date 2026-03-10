@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Campaign } from '@/lib/supabase';
+import CountdownTimer from '@/components/CountdownTimer';
 
 export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<(Campaign & { tasks?: { id: string; title: string; completions_count: number; max_completions: number }[] })[]>([]);
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all');
 
-    const fetchCampaigns = async () => {
+    const fetchCampaigns = async (currentFilter: string = statusFilter) => {
         try {
-            const res = await fetch('/api/campaigns?status=all');
+            const res = await fetch(`/api/campaigns?status=${currentFilter}`);
             const data = await res.json();
             setCampaigns(data.campaigns || []);
         } catch (err) {
@@ -20,23 +22,34 @@ export default function CampaignsPage() {
         }
     };
 
+    const triggerAutoPayout = async () => {
+        try {
+            await fetch('/api/admin/auto-payout');
+        } catch (err) {
+            console.error('Auto-payout trigger error:', err);
+        }
+    };
+
     useEffect(() => {
         fetchCampaigns();
-        const interval = setInterval(fetchCampaigns, 8000); // 8s refresh
+        triggerAutoPayout();
+        const interval = setInterval(() => {
+            fetchCampaigns();
+            triggerAutoPayout();
+        }, 8000); // 8s refresh
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="page-container animate-in" style={{ paddingBottom: '100px' }}>
+        <div className="page-container animate-in" style={{ paddingBottom: '100px', position: 'relative', overflow: 'hidden' }}>
+            <div className="glass-noise-moving"></div>
             {/* Header Section */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', marginTop: '2rem' }}>
                 <div>
                     <h1 style={{ fontSize: '3rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>Campaigns</h1>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Browse and manage testing campaigns</p>
                 </div>
-                <Link href="/campaigns/create" className="btn btn-primary" style={{
-                    background: 'white',
-                    color: 'black',
+                <Link href="/campaigns/create" className="btn btn-primary hover-lift" style={{
                     padding: '0.75rem 1.5rem',
                     borderRadius: '12px',
                     fontWeight: 700,
@@ -67,9 +80,48 @@ export default function CampaignsPage() {
                     />
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn" style={{ background: 'white', color: 'black', borderRadius: '10px', padding: '0.5rem 1.25rem', fontWeight: 700 }}>All</button>
-                    <button className="btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', borderRadius: '10px', padding: '0.5rem 1.25rem' }}>Active</button>
-                    <button className="btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'white', borderRadius: '10px', padding: '0.5rem 1.25rem' }}>Completed</button>
+                    <button
+                        onClick={() => { setStatusFilter('all'); fetchCampaigns('all'); }}
+                        className="btn"
+                        style={{
+                            background: statusFilter === 'all' ? 'white' : 'rgba(255,255,255,0.05)',
+                            color: statusFilter === 'all' ? 'black' : 'white',
+                            borderRadius: '10px',
+                            padding: '0.5rem 1.25rem',
+                            fontWeight: 700,
+                            border: statusFilter === 'all' ? 'none' : '1px solid var(--border)'
+                        }}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => { setStatusFilter('active'); fetchCampaigns('active'); }}
+                        className="btn"
+                        style={{
+                            background: statusFilter === 'active' ? 'white' : 'rgba(255,255,255,0.05)',
+                            color: statusFilter === 'active' ? 'black' : 'white',
+                            borderRadius: '10px',
+                            padding: '0.5rem 1.25rem',
+                            fontWeight: 700,
+                            border: statusFilter === 'active' ? 'none' : '1px solid var(--border)'
+                        }}
+                    >
+                        Active
+                    </button>
+                    <button
+                        onClick={() => { setStatusFilter('closed'); fetchCampaigns('closed'); }}
+                        className="btn"
+                        style={{
+                            background: statusFilter === 'closed' ? 'white' : 'rgba(255,255,255,0.05)',
+                            color: statusFilter === 'closed' ? 'black' : 'white',
+                            borderRadius: '10px',
+                            padding: '0.5rem 1.25rem',
+                            fontWeight: 700,
+                            border: statusFilter === 'closed' ? 'none' : '1px solid var(--border)'
+                        }}
+                    >
+                        Completed
+                    </button>
                 </div>
             </div>
 
@@ -88,14 +140,14 @@ export default function CampaignsPage() {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {campaigns.map((campaign) => {
+                    {campaigns.map((campaign, idx) => {
                         const totalTasks = campaign.tasks?.reduce((sum, t) => sum + t.max_completions, 0) || 0;
                         const completedTasks = campaign.tasks?.reduce((sum, t) => sum + t.completions_count, 0) || 0;
                         const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
                         const isActive = campaign.status === 'active';
 
                         return (
-                            <div key={campaign.id} className="card" style={{
+                            <div key={campaign.id} className={`card animate-stagger stagger-${(idx % 5) + 1} hover-lift`} style={{
                                 background: 'rgba(255,255,255,0.02)',
                                 border: '1px solid var(--border)',
                                 borderRadius: '24px',
@@ -103,26 +155,19 @@ export default function CampaignsPage() {
                                 display: 'grid',
                                 gridTemplateColumns: '2fr 1fr',
                                 gap: '2rem',
-                                transition: 'transform 0.2s, border-color 0.2s',
                                 cursor: 'pointer'
-                            }} onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                            }} onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--border)';
-                                e.currentTarget.style.transform = 'translateY(0)';
                             }}>
                                 {/* Left Side: Content */}
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                         <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{campaign.name}</h3>
-                                        <div style={{
+                                        <div className={isActive ? 'animate-pulse-subtle' : ''} style={{
                                             fontSize: '0.625rem',
                                             fontWeight: 800,
                                             padding: '0.25rem 0.6rem',
                                             borderRadius: '100px',
-                                            border: '1px solid #22C55E',
-                                            color: '#22C55E',
+                                            border: isActive ? '1px solid white' : '1px solid var(--border)',
+                                            color: isActive ? 'white' : 'var(--text-muted)',
                                             textTransform: 'uppercase'
                                         }}>
                                             {campaign.status}
@@ -153,7 +198,7 @@ export default function CampaignsPage() {
                                         </div>
                                         <div>
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Deadline</div>
-                                            <div style={{ fontWeight: 800, fontSize: '1.125rem' }}>🕒 {isActive ? 'Running' : 'Ended'}</div>
+                                            <div style={{ fontWeight: 800, fontSize: '1.125rem' }}>🕒 <CountdownTimer endsAt={campaign.ends_at} /></div>
                                         </div>
                                     </div>
                                 </div>
