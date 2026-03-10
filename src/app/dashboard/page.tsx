@@ -161,301 +161,363 @@ export default function DashboardPage() {
         }
     }
 
+    const [onboardingStep, setOnboardingStep] = useState(1);
+
     if (!userId) {
         return (
-            <div className="page-container" style={{ textAlign: 'center', padding: '6rem 2rem' }}>
-                <div className="card glass-card animate-in" style={{ padding: '3.5rem', maxWidth: '450px', margin: '0 auto' }}>
-                    <div style={{ fontSize: '3.5rem', marginBottom: '1.5rem' }}>🔐</div>
-                    <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Founder Access</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                        Sign in or create your account. A secure platform wallet will be managed for you.
-                    </p>
-                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ textAlign: 'left' }}>
-                            <label className="form-label" style={{ fontSize: '0.75rem' }}>USER ID</label>
-                            <input
-                                className="form-input"
-                                placeholder="Your Username"
-                                value={loginInput}
-                                onChange={(e) => setLoginInput(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div style={{ textAlign: 'left' }}>
-                            <label className="form-label" style={{ fontSize: '0.75rem' }}>PASSWORD</label>
-                            <input
-                                type="password"
-                                className="form-input"
-                                placeholder="Min 4 characters"
-                                value={passwordInput}
-                                onChange={(e) => setPasswordInput(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div style={{ textAlign: 'left' }}>
-                            <label className="form-label" style={{ fontSize: '0.75rem' }}>I AM A...</label>
-                            <select
-                                className="form-input"
-                                value={roleInput}
-                                onChange={(e) => setRoleInput(e.target.value as 'founder' | 'bot-hub')}
-                                style={{ appearance: 'none' }}
-                            >
-                                <option value="founder">Founder (Testing products)</option>
-                                <option value="bot-hub">Bot Owner (Executing tasks)</option>
-                            </select>
-                        </div>
-                        <button type="submit" disabled={authLoading} className="btn btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '1rem' }}>
-                            {authLoading ? 'Authenticating...' : 'Enter Dashboard'}
-                        </button>
-                    </form>
+            <div className="page-container" style={{ textAlign: 'center', padding: '100px 2rem', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{
+                    width: '64px',
+                    height: '64px',
+                    border: '2px solid white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                    marginBottom: '2rem',
+                    fontSize: '1.5rem',
+                    color: 'white'
+                }}>
+                    ⬢
                 </div>
+
+                <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '0.5rem', letterSpacing: '-0.03em' }}>Welcome to AgentProbe</h1>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.125rem' }}>
+                    Let&apos;s get you started in just a few steps
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem' }}>
+                    {[1, 2, 3].map((s) => (
+                        <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: onboardingStep >= s ? 'white' : 'transparent',
+                                border: '1px solid white',
+                                color: onboardingStep >= s ? 'black' : 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.875rem',
+                                fontWeight: 800
+                            }}>
+                                {s}
+                            </div>
+                            {s < 3 && <div style={{ width: '60px', height: '1px', background: onboardingStep > s ? 'white' : 'var(--border)' }}></div>}
+                        </div>
+                    ))}
+                </div>
+
+                {onboardingStep === 1 && (
+                    <div className="card" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '700px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Choose Your Role</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem' }}>
+                            Are you creating testing campaigns or running AI agents?
+                        </p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '3rem' }}>
+                            <div
+                                onClick={() => setRoleInput('founder')}
+                                style={{
+                                    padding: '2.5rem 1.5rem',
+                                    background: roleInput === 'founder' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                                    border: roleInput === 'founder' ? '2px solid white' : '1px solid var(--border)',
+                                    borderRadius: '16px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🎯</div>
+                                <h3 style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Founder</h3>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Create campaigns and manage testing tasks</p>
+                            </div>
+                            <div
+                                onClick={() => setRoleInput('bot-hub')}
+                                style={{
+                                    padding: '2.5rem 1.5rem',
+                                    background: roleInput === 'bot-hub' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                                    border: roleInput === 'bot-hub' ? '2px solid white' : '1px solid var(--border)',
+                                    borderRadius: '16px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🤖</div>
+                                <h3 style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Agent Operator</h3>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Deploy AI agents to earn USDC rewards</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setOnboardingStep(2)}
+                            className="btn btn-primary"
+                            style={{ width: '100%', padding: '1.25rem', background: 'white', color: 'black', fontWeight: 800, borderRadius: '12px' }}
+                        >
+                            Continue
+                        </button>
+                    </div>
+                )}
+
+                {onboardingStep === 2 && (
+                    <div className="card" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Connect Wallet</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Connect your wallet to manage USDC payments on Base</p>
+
+                        <div style={{ background: 'rgba(0, 82, 255, 0.03)', border: '1px solid var(--border)', padding: '2rem', borderRadius: '16px', marginBottom: '2.5rem' }}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🛡️</div>
+                            <h3 style={{ fontWeight: 800, fontSize: '1.125rem', marginBottom: '0.5rem' }}>Secure Managed Wallet</h3>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>We&apos;ll create a secure managed wallet for you. No private keys to manage!</p>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            setAuthLoading(true);
+                            // Simulating account creation for UI flow
+                            setTimeout(() => {
+                                setOnboardingStep(3);
+                                setAuthLoading(false);
+                            }, 800);
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left' }}>
+                            <div>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase' }}>Username</label>
+                                <input className="form-input" placeholder="yourname" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} required style={{ background: 'rgba(255,255,255,0.03)' }} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase' }}>Password</label>
+                                <input type="password" className="form-input" placeholder="Create a secure password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required style={{ background: 'rgba(255,255,255,0.03)' }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button type="button" onClick={() => setOnboardingStep(1)} className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }}>Back</button>
+                                <button type="submit" disabled={authLoading} className="btn btn-primary" style={{ flex: 2, background: 'white', color: 'black', fontWeight: 800, padding: '1rem' }}>
+                                    {authLoading ? '...' : 'Create Account'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {onboardingStep === 3 && (
+                    <div className="card" style={{ background: 'rgba(255,255,255,0.02)', padding: '4rem 3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                        <div style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '50%',
+                            background: '#22C55E',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '2.5rem',
+                            margin: '0 auto 2rem'
+                        }}>
+                            ✓
+                        </div>
+                        <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '1rem' }}>You&apos;re All Set!</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.125rem' }}>
+                            Browse available tasks and deploy your agents
+                        </p>
+
+                        <button
+                            onClick={handleLogin}
+                            className="btn btn-primary"
+                            style={{ width: '100%', padding: '1.25rem', background: 'white', color: 'black', fontWeight: 800, borderRadius: '12px' }}
+                        >
+                            Browse Tasks
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }
 
     return (
-        <div className="page-container">
+        <div className="page-container animate-in" style={{ paddingBottom: '100px' }}>
             {/* Header */}
-            <div className="page-header flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-12">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', marginTop: '2rem' }}>
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Founder Dashboard</h1>
-                    <p className="text-zinc-400 mt-1">Manage your campaigns and review agent performance.</p>
+                    <h1 style={{ fontSize: '3rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>Dashboard</h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Manage your testing campaigns</p>
                 </div>
-                <Link href="/campaigns/create" className="btn btn-primary w-full md:w-auto text-center">+ Create New Campaign</Link>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                {/* Managed Wallet Card */}
-                <div className="card glass-card p-8 lg:col-span-1" style={{ border: '1px solid var(--accent)', background: 'rgba(0, 82, 255, 0.03)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🏦</span>
-                        <h3 className="text-base font-extrabold">Managed Platform Wallet</h3>
-                    </div>
-                    <p className="text-sm text-zinc-400 mb-5">
-                        This is your inbuilt wallet. Deposit **USDC on Base** to fund your campaigns.
-                    </p>
-                    <div className="bg-black/20 p-3 rounded-md text-xs font-mono text-blue-500 flex justify-between items-center mb-4">
-                        <span className="truncate mr-2">{walletAddress}</span>
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(walletAddress!);
-                                alert('Wallet address copied to clipboard!');
-                            }}
-                            className="bg-transparent border-none text-zinc-500 hover:text-white cursor-pointer"
-                            title="Copy Address"
-                        >
-                            📋
-                        </button>
-                    </div>
-                    <div className="text-xl font-extrabold text-white mb-2">
-                        {parseFloat(balance).toFixed(2)} USDC
-                    </div>
-                    <div className="text-xs text-zinc-500">
-                        <strong>Network:</strong> Base Mainnet
-                    </div>
-                </div>
-
-                {/* Stats Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:col-span-2 h-full">
-                    <div className="card h-full flex flex-col justify-center">
-                        <div className="stat-value">{campaigns.length}</div>
-                        <div className="stat-label">Total Campaigns</div>
-                    </div>
-                    <div className="card h-full flex flex-col justify-center">
-                        <div className="stat-value">{submissions.length}</div>
-                        <div className="stat-label">Pending Reviews</div>
-                    </div>
-                    <div className="card h-full flex flex-col justify-center sm:col-span-2 lg:col-span-1">
-                        <div className="stat-value truncate">
-                            ${campaigns.reduce((sum, c) => sum + (c.remaining_budget || 0), 0).toFixed(2)}
-                        </div>
-                        <div className="stat-label">Remaining Budget</div>
-                    </div>
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px', border: '1px solid var(--border)' }}>
+                    <button
+                        onClick={() => setRoleInput('founder')}
+                        style={{
+                            padding: '0.6rem 1.5rem',
+                            borderRadius: '8px',
+                            background: roleInput === 'founder' ? 'white' : 'transparent',
+                            color: roleInput === 'founder' ? 'black' : 'white',
+                            fontWeight: 800,
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem'
+                        }}
+                    >
+                        Founder
+                    </button>
+                    <button
+                        onClick={() => setRoleInput('bot-hub')}
+                        style={{
+                            padding: '0.6rem 1.5rem',
+                            borderRadius: '8px',
+                            background: roleInput === 'bot-hub' ? 'white' : 'transparent',
+                            color: roleInput === 'bot-hub' ? 'black' : 'white',
+                            fontWeight: 800,
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem'
+                        }}
+                    >
+                        Agent
+                    </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Campaigns List */}
-                <div className="lg:col-span-2">
-                    <h2 className="text-2xl font-bold mb-6">Your Campaigns</h2>
-                    {loading ? (
-                        <div className="card glass-card text-center p-16">
-                            <div className="loading-spinner mx-auto" />
-                        </div>
-                    ) : campaigns.length === 0 ? (
-                        <div className="card glass-card text-center p-16">
-                            <p className="text-zinc-400 mb-6">You haven&apos;t launched any campaigns yet.</p>
-                            <Link href="/campaigns/create" className="btn btn-secondary">Create Your First Campaign</Link>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-4">
-                            {campaigns.map(camp => (
-                                <div key={camp.id} className="card glass-card animate-in flex flex-col md:flex-row justify-between items-start md:items-center p-6 gap-4">
-                                    <div className="w-full md:w-auto">
-                                        <h3 className="font-bold text-lg">{camp.name}</h3>
-                                        <p className="text-sm text-zinc-500 mt-1">
-                                            Reward: ${camp.reward_per_task} per task · Status: <span style={{ color: camp.status === 'active' ? 'var(--accent)' : 'var(--warning)' }}>{camp.status}</span>
-                                            {camp.created_at && (
-                                                <> · Created {new Date(camp.created_at).toLocaleDateString(undefined, { dateStyle: 'short' })}</>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="flex justify-between w-full md:w-auto md:justify-end gap-4 items-center border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0 mt-2 md:mt-0">
-                                        <div className="text-right md:mr-4">
-                                            <div className="font-semibold text-base">${camp.remaining_budget.toFixed(2)}</div>
-                                            <div className="text-xs text-zinc-500">Budget Left</div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteCampaign(camp.id)}
-                                            className="bg-transparent border-none text-red-500 cursor-pointer text-base p-2 hover:bg-red-500/10 rounded"
-                                            title="Delete Campaign"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {/* Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Active Campaigns</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800 }}>{campaigns.filter(c => c.status === 'active').length}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Live on Hub</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        🎯
+                    </div>
                 </div>
-
-                {/* Quick Reviews Sidebar */}
-                <div className="lg:col-span-1">
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Review Hub</h2>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Approve here to pay agents immediately. Primary review queue for your campaigns.</p>
-                    {submissions.length === 0 ? (
-                        <div className="card glass-card" style={{ textAlign: 'center', padding: '2rem' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✅</div>
-                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>All clear! No pending submissions.</p>
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Total Budget</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800 }}>${campaigns.reduce((sum, c) => sum + (c.total_budget || 0), 0).toLocaleString()}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginTop: '0.25rem' }}>USDC</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        $
+                    </div>
+                </div>
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Verified Reports</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800 }}>{completedReports.length}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Full bot feedback</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        ✓
+                    </div>
+                </div>
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>Unique Agents</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800 }}>
+                            {new Set([...submissions, ...completedReports].map(s => s.agent_wallet)).size}
                         </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {submissions.map(sub => (
-                                <div key={sub.id} className="card glass-card animate-in" style={{ padding: '1.25rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                        <h4 style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{sub.tasks?.title}</h4>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 600 }}>Matched</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{sub.feedback?.scores?.usability}/10</div>
-                                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>UX Score</div>
-                                        </div>
-                                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{sub.feedback?.duration_seconds}s</div>
-                                            <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Speed</div>
-                                        </div>
-                                    </div>
-
-                                    {sub.task_result_summary && (
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <h5 style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>BOT RESULT:</h5>
-                                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>&quot;{sub.task_result_summary}&quot;</p>
-                                        </div>
-                                    )}
-
-                                    {sub.bot_feedback_for_campaign && (
-                                        <div style={{ marginBottom: '1.25rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
-                                            <h5 style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>AGENT EVALUATION:</h5>
-                                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>&quot;{sub.bot_feedback_for_campaign}&quot;</p>
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
-                                            className="btn btn-secondary"
-                                            disabled={!!actionLoading}
-                                            style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}
-                                            onClick={() => handleAction(sub.id, 'reject')}
-                                        >
-                                            Reject
-                                        </button>
-                                        <button
-                                            className="btn btn-primary"
-                                            disabled={!!actionLoading}
-                                            style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}
-                                            onClick={() => handleAction(sub.id, 'approve')}
-                                        >
-                                            {actionLoading === sub.id ? '...' : 'Approve & pay'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                        <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700, marginTop: '0.25rem' }}>Network reach</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        🤖
+                    </div>
                 </div>
             </div>
 
-            {/* Completed Bot Reports — Full Width */}
-            <div style={{ marginTop: '3rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Bot Reports</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '1.5rem' }}>Feedback from agents who completed your tasks. This persists after approval.</p>
-                {completedReports.length === 0 ? (
-                    <div className="card glass-card" style={{ textAlign: 'center', padding: '2rem' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>No completed reports yet. Bot feedback will appear here after tasks are executed and approved.</p>
-                    </div>
-                ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1rem' }}>
-                        {completedReports.map(report => (
-                            <div key={report.id} className="card glass-card animate-in" style={{ padding: '1.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                    <h4 style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{report.tasks?.title || 'Task'}</h4>
-                                    <span style={{ fontSize: '0.625rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700, background: report.status === 'paid' ? 'rgba(34,197,94,0.15)' : 'rgba(0,82,255,0.15)', color: report.status === 'paid' ? 'var(--success)' : 'var(--accent)' }}>{report.status.toUpperCase()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Your Campaigns</h2>
+                <Link href="/campaigns/create" className="btn" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.875rem' }}>
+                    + New Campaign
+                </Link>
+            </div>
+
+            {loading ? (
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
+                    <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                </div>
+            ) : campaigns.length === 0 ? (
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>You haven&apos;t launched any campaigns yet.</p>
+                    <Link href="/campaigns/create" className="btn btn-secondary">Create Your First Campaign</Link>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {campaigns.map(camp => {
+                        const spent = camp.total_budget - camp.remaining_budget;
+                        const progress = Math.min(100, Math.round((spent / camp.total_budget) * 100));
+                        const tasksPossible = Math.floor(camp.total_budget / (camp.reward_per_task || 1));
+                        const tasksDone = Math.floor(spent / (camp.reward_per_task || 1));
+
+                        return (
+                            <div key={camp.id} className="card" style={{
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '24px',
+                                padding: '1.75rem 2.5rem',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '2rem'
+                            }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>{camp.name}</h3>
+                                        <span style={{
+                                            fontSize: '0.625rem',
+                                            fontWeight: 800,
+                                            padding: '0.2rem 0.6rem',
+                                            background: camp.status === 'active' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255,255,255,0.05)',
+                                            color: camp.status === 'active' ? '#22C55E' : 'var(--text-muted)',
+                                            borderRadius: '100px',
+                                            textTransform: 'uppercase'
+                                        }}>
+                                            {camp.status}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <span style={{ opacity: 0.5 }}>$</span> {camp.total_budget.toLocaleString()} USDC
+                                        </span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <span style={{ opacity: 0.5 }}>✓</span> {tasksDone} / {tasksPossible} tests
+                                        </span>
+                                    </div>
                                 </div>
 
-                                {/* Score Row */}
-                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.scores?.usability}/10</div>
-                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>UX</div>
+                                <div style={{ minWidth: '240px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                        <span>{progress}% budget spent</span>
                                     </div>
-                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.scores?.speed}/10</div>
-                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Speed</div>
-                                    </div>
-                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.scores?.clarity}/10</div>
-                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Clarity</div>
-                                    </div>
-                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '4px', textAlign: 'center' }}>
-                                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{report.feedback?.duration_seconds}s</div>
-                                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Duration</div>
+                                    <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden' }}>
+                                        <div style={{
+                                            width: `${progress}%`,
+                                            height: '100%',
+                                            background: 'white',
+                                            borderRadius: '100px'
+                                        }}></div>
                                     </div>
                                 </div>
 
-                                {report.task_result_summary && (
-                                    <div style={{ marginBottom: '0.75rem' }}>
-                                        <h5 style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Result</h5>
-                                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>&quot;{report.task_result_summary}&quot;</p>
-                                    </div>
-                                )}
-
-                                {report.bot_feedback_for_campaign && (
-                                    <div style={{ padding: '0.75rem', background: 'rgba(0, 82, 255, 0.05)', borderRadius: '6px', borderLeft: '3px solid var(--accent)' }}>
-                                        <h5 style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Agent Evaluation</h5>
-                                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>&quot;{report.bot_feedback_for_campaign}&quot;</p>
-                                    </div>
-                                )}
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                                    <span>Agent: {report.agents?.name || 'Anonymous'}</span>
-                                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <Link href={`/campaigns/${camp.id}`} className="btn" style={{
+                                        background: 'transparent',
+                                        border: '1px solid var(--border)',
+                                        color: 'white',
+                                        fontWeight: 800,
+                                        padding: '0.6rem 1.25rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.8125rem'
+                                    }}>
+                                        View Details
+                                    </Link>
+                                    <button
+                                        onClick={() => handleDeleteCampaign(camp.id)}
+                                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', opacity: 0.6, fontSize: '1.25rem' }}
+                                        title="Delete Campaign"
+                                    >
+                                        🗑️
+                                    </button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             <style jsx>{`
-                .glass-morphism {
-                    background: rgba(255, 255, 255, 0.03);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.06);
-                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-                }
                 .animate-in {
                     animation: fadeIn 0.5s ease-out forwards;
                 }

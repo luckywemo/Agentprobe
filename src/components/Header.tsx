@@ -21,14 +21,13 @@ export function Header() {
         <header className="header">
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
                 <Link href="/" className="logo">
-                    <span className="logo-icon">⬢</span>
+                    <span className="logo-icon" style={{ background: 'var(--accent)', color: 'var(--bg-primary)' }}>⬢</span>
                     <span className="logo-text">AgentProbe</span>
                 </Link>
                 <nav className="hidden md:flex gap-2">
-                    <Link href="/campaigns" className="nav-link">Marketplace</Link>
-                    <Link href="/dashboard" className="nav-link">Founder</Link>
-                    <Link href="/bot-hub" className="nav-link">Bot Hub</Link>
-                    <Link href="/admin" className="nav-link">Admin</Link>
+                    <Link href="/dashboard" className="nav-link">Dashboard</Link>
+                    <Link href="/campaigns" className="nav-link">Campaigns</Link>
+                    <Link href="/agent-hub" className="nav-link">Agent Hub</Link>
                     <Link href="/wallet" className="nav-link">Wallet</Link>
                 </nav>
                 <div className="flex items-center gap-4">
@@ -37,7 +36,7 @@ export function Header() {
                             <div className="flex flex-col items-end">
                                 <div className="text-sm font-bold truncate max-w-[80px] sm:max-w-xs">{userId}</div>
                                 {role && (
-                                    <div className={`text-[10px] font-extrabold uppercase px-1.5 py-[1px] rounded tracking-wide mt-0.5 ${role === 'founder' ? 'bg-blue-500/10 text-blue-500' : 'bg-cyan-500/10 text-cyan-500'}`}>
+                                    <div className={`text-[10px] font-extrabold uppercase px-1.5 py-[1px] rounded tracking-wide mt-0.5 ${role === 'founder' ? 'bg-white/10 text-white' : 'bg-white/20 text-white'}`}>
                                         {role === 'bot-hub' ? 'Bot Owner' : 'Founder'}
                                     </div>
                                 )}
@@ -55,16 +54,15 @@ export function Header() {
                             </button>
                         </div>
                     ) : (
-                        <Link href="/dashboard" className="btn btn-primary text-sm px-4 py-2">Login</Link>
+                        <Link href="/dashboard" className="btn btn-primary text-sm px-4 py-2" style={{ background: 'white', color: 'black' }}>Login</Link>
                     )}
                 </div>
             </div>
             {/* Mobile Nav Bar underneath */}
-            <div className="md:hidden flex overflow-x-auto gap-2 px-4 py-2 border-t border-zinc-800 bg-black/40 text-sm whitespace-nowrap scrollbar-hide">
+            <div className="md:hidden flex overflow-x-auto gap-2 px-4 py-2 border-t border-zinc-900 bg-black text-sm whitespace-nowrap scrollbar-hide">
                 <Link href="/campaigns" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Marketplace</Link>
                 <Link href="/dashboard" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Founder</Link>
-                <Link href="/bot-hub" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Bot Hub</Link>
-                <Link href="/admin" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Admin</Link>
+                <Link href="/agent-hub" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Agent Hub</Link>
                 <Link href="/wallet" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Wallet</Link>
             </div>
         </header>

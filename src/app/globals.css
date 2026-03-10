@@ -2,31 +2,31 @@
 
 /* ===== Pro-Tech Design System (High Contrast) ===== */
 :root {
-  --bg-primary: #020203;
-  --bg-secondary: #09090b;
-  --bg-card: #0c0c0e;
-  --bg-card-hover: #121215;
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-card: #0f0f0f;
+  --bg-card-hover: #161616;
 
-  --border: #1d1d21;
-  --border-hover: #2d2d33;
-  --border-accent: rgba(0, 82, 255, 0.2);
+  --border: #1a1a1a;
+  --border-hover: #333333;
+  --border-accent: rgba(255, 255, 255, 0.1);
 
   --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
 
-  --accent: #0052FF;
-  /* Base Blue */
-  --accent-hover: #0041CC;
-  --accent-soft: rgba(0, 82, 255, 0.1);
+  --accent: #ffffff;
+  /* Pure White for B&W */
+  --accent-hover: #eeeeee;
+  --accent-soft: rgba(255, 255, 255, 0.05);
 
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
+  --success: #ffffff;
+  --warning: #888888;
+  --danger: #444444;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
 }
 
 /* ===== Base & Reset ===== */
@@ -67,7 +67,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(2, 2, 3, 0.85);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -314,21 +314,21 @@ body {
 }
 
 .badge-pending {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--warning);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .badge-danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ===== Custom Table/Grid for Admin ===== */

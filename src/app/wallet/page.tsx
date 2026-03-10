@@ -17,9 +17,14 @@ export default function WalletPage() {
     const [asset, setAsset] = useState<'ETH' | 'USDC'>('USDC');
     const [txHash, setTxHash] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [selectedTab, setSelectedTab] = useState<'overview' | 'transactions' | 'withdraw'>('overview');
 
-    const walletAddress = typeof window !== 'undefined' ? localStorage.getItem('agentprobe_wallet_address') : null;
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('agentprobe_user_id') : null;
+    const [hubData, setHubData] = useState<{ agents: any[], activities: any[], stats: any } | null>(null);
+    const [hubLoading, setHubLoading] = useState(false);
+
+    const [walletAddress, setWalletAddress] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
 
     const fetchBalances = useCallback(async () => {
         if (!walletAddress) return;
@@ -38,9 +43,35 @@ export default function WalletPage() {
         setLoading(false);
     }, [walletAddress]);
 
+    const fetchHubData = useCallback(async () => {
+        if (!walletAddress) return;
+        setHubLoading(true);
+        try {
+            const res = await fetch(`/api/agent-hub?owner=${walletAddress}`);
+            const data = await res.json();
+            if (res.ok) {
+                setHubData(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch hub data:', err);
+        }
+        setHubLoading(false);
+    }, [walletAddress]);
+
     useEffect(() => {
-        fetchBalances();
-    }, [fetchBalances]);
+        const storedWallet = localStorage.getItem('agentprobe_wallet_address');
+        const storedId = localStorage.getItem('agentprobe_user_id');
+        if (storedWallet) setWalletAddress(storedWallet);
+        if (storedId) setUserId(storedId);
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (mounted && walletAddress) {
+            fetchBalances();
+            fetchHubData();
+        }
+    }, [fetchBalances, fetchHubData, mounted, walletAddress]);
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,6 +94,8 @@ export default function WalletPage() {
                 setAmount('');
                 setRecipient('');
                 fetchBalances();
+                fetchHubData();
+                setSelectedTab('overview');
             } else {
                 setError(data.error || 'Transfer failed');
             }
@@ -72,151 +105,286 @@ export default function WalletPage() {
         setSending(false);
     };
 
-    if (!walletAddress) {
+    if (!mounted || !walletAddress) {
         return (
             <div className="page-container" style={{ textAlign: 'center', padding: '10rem 2rem' }}>
-                <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Wallet Not Found</h2>
-                <p style={{ color: 'var(--text-secondary)' }}>Please login to access your managed wallet.</p>
+                <div className="card glass-card animate-in" style={{ padding: '3.5rem', maxWidth: '450px', margin: '0 auto', border: '1px solid var(--border)', borderRadius: '24px' }}>
+                    {!mounted ? (
+                        <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                    ) : (
+                        <>
+                            <div style={{ fontSize: '3.5rem', marginBottom: '1.5rem' }}>🔐</div>
+                            <h1 style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 800 }}>Wallet Locked</h1>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Sign in to access your managed treasury and view transactions.</p>
+                        </>
+                    )}
+                </div>
             </div>
         );
     }
 
+    const realStats = [
+        { label: 'Total Earned', value: `$${hubData?.stats.totalEarnings.toLocaleString() || '0'}`, trend: 'All-time earnings', icon: '$', trendColor: '#22C55E' },
+        { label: 'Claimable', value: `$${hubData?.stats.claimableBalance.toLocaleString() || '0'}`, trend: 'Available to withdraw', icon: '↗', trendColor: '#22C55E' },
+        { label: 'Active Bots', value: hubData?.stats.workingBots.toString() || '0', trend: `${hubData?.stats.totalBots || 0} bots total`, icon: '🤖', trendColor: 'white' },
+        { label: 'Total Tasks', value: hubData?.stats.totalTasks.toString() || '0', trend: 'Submissions made', icon: '✓', trendColor: '#22C55E' }
+    ];
+
     return (
-        <div className="page-container">
-            <div className="page-header" style={{ marginBottom: '3rem' }}>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Wallet</h1>
-                <p style={{ color: 'var(--text-secondary)' }}>Manage your managed assets on Base network.</p>
+        <div className="page-container animate-in" style={{ paddingBottom: '100px' }}>
+            {/* Header */}
+            <div style={{ marginBottom: '3rem', marginTop: '2rem' }}>
+                <h1 style={{ fontSize: '3rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>Wallet</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Manage your USDC balance and transactions</p>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Balance Cards */}
-                <div className="flex flex-col gap-6 lg:w-2/5">
-                    <div className="card glass-card relative overflow-hidden p-8">
-                        <div className="absolute -top-2 -right-2 text-7xl opacity-5">💎</div>
-                        <h3 className="text-sm font-bold text-zinc-500 uppercase mb-4 tracking-wider">ETH Balance</h3>
-                        <div className="text-4xl font-extrabold mb-1">
-                            {loading ? '...' : balances?.eth || '0.00'} <span className="text-lg font-semibold">ETH</span>
-                        </div>
-                        <div className="text-xs text-zinc-500">Base Network Native</div>
+            {/* Main Balance Card */}
+            <div className="card" style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border)',
+                borderRadius: '24px',
+                padding: '2.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '2rem',
+                marginBottom: '1.5rem'
+            }}>
+                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '2rem'
+                    }}>
+                        💳
                     </div>
-
-                    <div className="card glass-card relative overflow-hidden p-8 border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
-                        <div className="absolute -top-2 -right-2 text-7xl opacity-5">💵</div>
-                        <h3 className="text-sm font-bold text-zinc-500 uppercase mb-4 tracking-wider">USDC Balance</h3>
-                        <div className="text-4xl font-extrabold text-blue-500 mb-1">
-                            {loading ? '...' : balances?.usdc || '0.00'} <span className="text-lg font-semibold text-white">USDC</span>
-                        </div>
-                        <div className="text-xs text-zinc-500">Circle Bridged USDC (Base)</div>
-                    </div>
-
-                    <div className="card glass-card p-6">
-                        <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3 tracking-wider">Your Managed Address</h4>
-                        <div className="bg-white/5 p-3 rounded-md text-xs sm:text-sm font-mono flex justify-between items-center break-all">
-                            <span className="truncate mr-2">{balances?.address || walletAddress}</span>
-                            <button 
-                                onClick={() => navigator.clipboard.writeText(balances?.address || walletAddress || '')}
-                                className="bg-transparent border-none text-blue-500 cursor-pointer hover:text-white transition-colors"
-                            >
-                                📋
-                            </button>
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-3 italic">
-                            Deposit assets here to fund campaigns or pay gas fees.
-                        </p>
+                    <div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Managed Wallet Balance</div>
+                        <div style={{ fontSize: '3rem', fontWeight: 800 }}>${parseFloat(balances?.usdc || '0').toLocaleString()}</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 700, marginTop: '0.25rem' }}>USDC on Base</div>
                     </div>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: '200px' }}>
+                    <button onClick={() => setSelectedTab('withdraw')} className="btn" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '0.8rem', borderRadius: '12px' }}>
+                        Withdraw USDC
+                    </button>
+                    <button className="btn" style={{ background: 'transparent', border: '1px solid var(--border)', color: 'white', fontWeight: 800, padding: '0.8rem', borderRadius: '12px' }}>
+                        Deposit USDC
+                    </button>
+                    <button className="btn" style={{ background: 'transparent', border: '1px solid var(--border)', color: 'white', fontWeight: 800, padding: '0.8rem', borderRadius: '12px' }}>
+                        Export History
+                    </button>
+                </div>
+            </div>
 
-                {/* Transfer Form */}
-                <div className="card glass-card p-8 lg:w-3/5">
-                    <h3 className="text-2xl font-bold mb-8">Send Funds</h3>
-                    
-                    <form onSubmit={handleSend} className="flex flex-col gap-6">
-                        <div className="form-group">
-                            <label className="block text-sm font-bold mb-2">Recipient Address</label>
-                            <input 
-                                type="text"
-                                className="input-field w-full"
+            {/* Wallet Address Bar */}
+            <div className="card" style={{
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid var(--border)',
+                borderRadius: '16px',
+                padding: '1rem 1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '3rem'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>Wallet Address</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '1rem', color: 'white', opacity: 0.9 }}>
+                        {balances?.address || walletAddress}
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                        onClick={() => navigator.clipboard.writeText(balances?.address || walletAddress || '')}
+                        style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.125rem' }}
+                        title="Copy Address"
+                    >
+                        📋
+                    </button>
+                    <a
+                        href={`https://basescan.org/address/${balances?.address || walletAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.125rem', textDecoration: 'none' }}
+                        title="View on Basescan"
+                    >
+                        🔗
+                    </a>
+                </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                {realStats.map((stat, i) => (
+                    <div key={i} className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>{stat.label}</div>
+                            <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stat.value}</div>
+                            <div style={{ fontSize: '0.75rem', color: stat.trendColor, fontWeight: 700, marginTop: '0.25rem' }}>{stat.trend}</div>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.05)', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                            {stat.icon}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '16px', padding: '0.4rem', marginBottom: '3rem' }}>
+                {['overview', 'transactions', 'withdraw'].map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setSelectedTab(tab as any)}
+                        style={{
+                            flex: 1,
+                            padding: '0.75rem',
+                            borderRadius: '12px',
+                            background: selectedTab === tab ? 'white' : 'transparent',
+                            color: selectedTab === tab ? 'black' : 'white',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: '0.2s',
+                            textTransform: 'capitalize'
+                        }}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+
+            {/* Tab Content */}
+            {(selectedTab === 'overview' || selectedTab === 'transactions') && (
+                <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>
+                        {selectedTab === 'overview' ? 'Recent Activity' : 'Transaction History'}
+                    </h2>
+                    {hubLoading ? (
+                        <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
+                            <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                        </div>
+                    ) : hubData?.activities.length === 0 ? (
+                        <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '4rem', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--text-muted)' }}>No transactions found.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {hubData?.activities.map((tx: any) => (
+                                <div key={tx.id} className="card" style={{
+                                    background: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '20px',
+                                    padding: '1.25rem 1.5rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                                        <div style={{
+                                            width: '44px',
+                                            height: '44px',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            borderRadius: '10px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '1.25rem',
+                                            color: tx.status === 'paid' || tx.status === 'claimed' ? '#22C55E' : '#EF4444'
+                                        }}>
+                                            {tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved' ? '↙' : '↗'}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white' }}>
+                                                {tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved' ? 'Task reward' : 'Withdrawal'}
+                                            </div>
+                                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                                                {tx.tasks?.title || 'Manual Transfer'} • {new Date(tx.created_at).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: (tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved') ? '#22C55E' : 'white' }}>
+                                            {(tx.status === 'paid' || tx.status === 'claimed' || tx.status === 'approved') ? '+' : '-'}${tx.campaigns?.reward_per_task || '0'} USDC
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.625rem',
+                                            fontWeight: 800,
+                                            padding: '0.2rem 0.6rem',
+                                            background: tx.status === 'paid' || tx.status === 'claimed' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255,255,255,0.05)',
+                                            color: tx.status === 'paid' || tx.status === 'claimed' ? '#22C55E' : 'var(--text-muted)',
+                                            borderRadius: '100px',
+                                            display: 'inline-block',
+                                            marginTop: '0.5rem',
+                                            textTransform: 'uppercase'
+                                        }}>
+                                            {tx.status}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {selectedTab === 'withdraw' && (
+                <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '24px', padding: '2.5rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem' }}>Withdraw Funds</h2>
+                    <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px' }}>
+                        <div style={{ textAlign: 'left' }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Recipient Address</label>
+                            <input
+                                className="form-input"
                                 placeholder="0x..."
                                 value={recipient}
                                 onChange={(e) => setRecipient(e.target.value)}
+                                style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}
                                 required
                             />
                         </div>
-
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="form-group sm:w-1/3">
-                                <label className="block text-sm font-bold mb-2">Asset</label>
-                                <select 
-                                    className="input-field w-full appearance-none"
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ flex: 1, textAlign: 'left' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Asset</label>
+                                <select
+                                    className="form-input"
                                     value={asset}
-                                    onChange={(e) => setAsset(e.target.value as 'ETH' | 'USDC')}
+                                    onChange={(e) => setAsset(e.target.value as any)}
+                                    style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}
                                 >
                                     <option value="USDC">USDC</option>
                                     <option value="ETH">ETH</option>
                                 </select>
                             </div>
-                            <div className="form-group sm:w-2/3">
-                                <label className="block text-sm font-bold mb-2">Amount</label>
-                                <input 
+                            <div style={{ flex: 2, textAlign: 'left' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount</label>
+                                <input
                                     type="number"
                                     step="any"
-                                    className="input-field w-full"
+                                    className="form-input"
                                     placeholder="0.00"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
+                                    style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}
                                     required
                                 />
                             </div>
                         </div>
 
-                        {error && (
-                            <div style={{ padding: '1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: 'var(--danger)', fontSize: '0.875rem' }}>
-                                Error: {error}
-                            </div>
-                        )}
+                        {error && <div style={{ color: '#EF4444', fontSize: '0.875rem' }}>{error}</div>}
+                        {txHash && <div style={{ color: '#22C55E', fontSize: '0.875rem' }}>Success! Tx: {txHash}</div>}
 
-                        {txHash && (
-                            <div style={{ padding: '1rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', color: 'var(--success)', fontSize: '0.875rem' }}>
-                                Success! Transaction sent.
-                                <div style={{ fontSize: '0.75rem', marginTop: '0.5rem', fontFamily: 'monospace', wordBreak: 'break-all', opacity: 0.8 }}>
-                                    Hash: {txHash}
-                                </div>
-                            </div>
-                        )}
-
-                        <button 
-                            type="submit" 
-                            className="btn btn-primary" 
-                            disabled={sending}
-                            style={{ height: '3.5rem', fontSize: '1rem', fontWeight: 700, marginTop: '1rem' }}
-                        >
-                            {sending ? 'Processing Transaction...' : `Send ${amount || '0.00'} ${asset}`}
+                        <button type="submit" disabled={sending} className="btn" style={{ background: 'white', color: 'black', fontWeight: 800, padding: '1rem', borderRadius: '12px', marginTop: '1rem' }}>
+                            {sending ? 'Processing...' : `Withdraw ${amount || '0.00'} ${asset}`}
                         </button>
-
-                        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Transactions on Base are fast and low-cost. 
-                            Ensure you have a small amount of ETH for gas.
-                        </div>
                     </form>
                 </div>
-            </div>
-
-            <style jsx>{`
-                .glass-card {
-                    background: rgba(255, 255, 255, 0.03);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.06);
-                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-                }
-                .animate-in {
-                    animation: fadeIn 0.5s ease-out forwards;
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
+            )}
         </div>
     );
 }
