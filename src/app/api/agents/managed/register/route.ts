@@ -29,21 +29,32 @@ export async function POST(request: NextRequest) {
         // If owner_id is a username (not a UUID), lookup the internal UUID
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(owner_id || '');
 
-        if (!isUUID || !owner_id) {
-            const { data: userData } = await supabase
-                .from('users')
-                .select('id')
-                .or(`user_id.eq.${owner_id},wallet_address.eq.${owner_address}`)
-                .single();
+        // lookup internal owner and their slots
+        const { data: userData } = await supabase
+            .from('users')
+            .select('id, bot_slots')
+            .or(`id.eq.${owner_id},user_id.eq.${owner_id},wallet_address.eq.${owner_address}`)
+            .single();
 
-            if (userData?.id) {
-                internalOwnerId = userData.id;
-            } else {
-                // Background fallback: if no user is found, we might be in early dev
-                // We'll leave it as null for now rather than failing, if the schema allows null.
-                // But since owner_id is often a FK, we should be careful.
-                internalOwnerId = null;
+        if (userData) {
+            internalOwnerId = userData.id;
+            const slots = userData.bot_slots || 1;
+
+            // Check how many agents they already have
+            const { count, error: countError } = await supabase
+                .from('agents')
+                .select('*', { count: 'exact', head: true })
+                .eq('owner_id', internalOwnerId);
+
+            if (!countError && count !== null && count >= slots) {
+                return NextResponse.json(
+                    { error: `Bot slot limit reached (${slots}). Increase your reputation to unlock more slots.` },
+                    { status: 403 }
+                );
             }
+        } else {
+            // Background fallback: if no user is found, we might be in early dev
+            internalOwnerId = null;
         }
 
         // 1. Generate Managed Wallet

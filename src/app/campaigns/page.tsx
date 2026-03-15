@@ -6,20 +6,77 @@ import type { Campaign } from '@/lib/supabase';
 import CountdownTimer from '@/components/CountdownTimer';
 
 export default function CampaignsPage() {
-    const [campaigns, setCampaigns] = useState<(Campaign & { tasks?: { id: string; title: string; completions_count: number; max_completions: number }[] })[]>([]);
+    const [campaigns, setCampaigns] = useState<(Campaign & { category?: string; tasks?: { id: string; title: string; completions_count: number; max_completions: number }[] })[]>([]);
     const [loading, setLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all');
 
-    const fetchCampaigns = async (currentFilter: string = statusFilter) => {
+    // Filters & Pagination state
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('active');
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+    const [sortFilter, setSortFilter] = useState<string>('newest');
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    const fetchCampaigns = async (
+        status = statusFilter,
+        category = categoryFilter,
+        sort = sortFilter,
+        targetPage = 1,
+        append = false,
+        silent = false
+    ) => {
+        if (!silent && !append) setLoading(true);
+        if (append) setLoadingMore(true);
+
         try {
-            const res = await fetch(`/api/campaigns?status=${currentFilter}`);
+            const params = new URLSearchParams({
+                status,
+                category,
+                sort,
+                page: targetPage.toString(),
+                limit: '12'
+            });
+
+            const res = await fetch(`/api/campaigns?${params.toString()}`);
             const data = await res.json();
-            setCampaigns(data.campaigns || []);
+
+            const fetched = data.campaigns || [];
+            if (append) {
+                setCampaigns(prev => {
+                    // avoid duplicates if same id arrives
+                    const existingIds = new Set(prev.map((c) => c.id));
+                    const newItems = fetched.filter((c: any) => !existingIds.has(c.id));
+                    return [...prev, ...newItems];
+                });
+            } else {
+                setCampaigns(fetched);
+            }
+
+            setHasMore(data.total > targetPage * 12);
         } catch (err) {
             console.error('Marketplace fetch error:', err);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
+    };
+
+    const handleFilterChange = (setter: any, value: any) => {
+        setter(value);
+        setPage(1);
+        fetchCampaigns(
+            setter === setStatusFilter ? value : statusFilter,
+            setter === setCategoryFilter ? value : categoryFilter,
+            setter === setSortFilter ? value : sortFilter,
+            1,
+            false
+        );
+    };
+
+    const loadMore = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchCampaigns(statusFilter, categoryFilter, sortFilter, nextPage, true);
     };
 
     const triggerAutoPayout = async () => {
@@ -31,12 +88,13 @@ export default function CampaignsPage() {
     };
 
     useEffect(() => {
-        fetchCampaigns();
+        fetchCampaigns(statusFilter, categoryFilter, sortFilter, 1, false);
         triggerAutoPayout();
         const interval = setInterval(() => {
-            fetchCampaigns();
+            // Silently refresh the first page so it doesn't jump UI or duplicate rows badly
+            fetchCampaigns(statusFilter, categoryFilter, sortFilter, 1, false, true);
             triggerAutoPayout();
-        }, 8000); // 8s refresh
+        }, 15000);
         return () => clearInterval(interval);
     }, []);
 
@@ -62,66 +120,73 @@ export default function CampaignsPage() {
             </div>
 
             {/* Search and Filters */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '3rem', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>🔍</span>
-                    <input
-                        type="text"
-                        placeholder="Search campaigns..."
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '3rem', alignItems: 'center' }}>
+                <div style={{ flex: 1, minWidth: '300px', display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }} className="scrollbar-hide">
+                    {['all', 'ux', 'security', 'e2e', 'performance', 'general'].map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => handleFilterChange(setCategoryFilter, cat)}
+                            style={{
+                                padding: '0.5rem 1.25rem',
+                                borderRadius: '100px',
+                                fontSize: '0.875rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                background: categoryFilter === cat ? 'white' : 'rgba(255,255,255,0.05)',
+                                color: categoryFilter === cat ? 'black' : 'var(--text-muted)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <select
+                        value={sortFilter}
+                        onChange={(e) => handleFilterChange(setSortFilter, e.target.value)}
                         style={{
-                            width: '100%',
-                            padding: '0.875rem 1rem 0.875rem 3rem',
+                            padding: '0.625rem 1rem',
+                            borderRadius: '12px',
                             background: 'rgba(255,255,255,0.03)',
                             border: '1px solid var(--border)',
-                            borderRadius: '12px',
                             color: 'white',
-                            fontSize: '0.9375rem'
-                        }}
-                    />
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                        onClick={() => { setStatusFilter('all'); fetchCampaigns('all'); }}
-                        className="btn"
-                        style={{
-                            background: statusFilter === 'all' ? 'white' : 'rgba(255,255,255,0.05)',
-                            color: statusFilter === 'all' ? 'black' : 'white',
-                            borderRadius: '10px',
-                            padding: '0.5rem 1.25rem',
+                            fontSize: '0.875rem',
                             fontWeight: 700,
-                            border: statusFilter === 'all' ? 'none' : '1px solid var(--border)'
+                            cursor: 'pointer',
+                            outline: 'none',
                         }}
                     >
-                        All
-                    </button>
-                    <button
-                        onClick={() => { setStatusFilter('active'); fetchCampaigns('active'); }}
-                        className="btn"
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="reward_desc">Highest Reward</option>
+                        <option value="ending_soon">Ending Soon</option>
+                    </select>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => handleFilterChange(setStatusFilter, e.target.value)}
                         style={{
-                            background: statusFilter === 'active' ? 'white' : 'rgba(255,255,255,0.05)',
-                            color: statusFilter === 'active' ? 'black' : 'white',
-                            borderRadius: '10px',
-                            padding: '0.5rem 1.25rem',
+                            padding: '0.625rem 1rem',
+                            borderRadius: '12px',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--border)',
+                            color: 'white',
+                            fontSize: '0.875rem',
                             fontWeight: 700,
-                            border: statusFilter === 'active' ? 'none' : '1px solid var(--border)'
+                            cursor: 'pointer',
+                            outline: 'none',
                         }}
                     >
-                        Active
-                    </button>
-                    <button
-                        onClick={() => { setStatusFilter('closed'); fetchCampaigns('closed'); }}
-                        className="btn"
-                        style={{
-                            background: statusFilter === 'closed' ? 'white' : 'rgba(255,255,255,0.05)',
-                            color: statusFilter === 'closed' ? 'black' : 'white',
-                            borderRadius: '10px',
-                            padding: '0.5rem 1.25rem',
-                            fontWeight: 700,
-                            border: statusFilter === 'closed' ? 'none' : '1px solid var(--border)'
-                        }}
-                    >
-                        Completed
-                    </button>
+                        <option value="active">Active Only</option>
+                        <option value="all">All Campaigns</option>
+                        <option value="closed">Completed Only</option>
+                    </select>
                 </div>
             </div>
 
@@ -161,15 +226,7 @@ export default function CampaignsPage() {
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                         <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{campaign.name}</h3>
-                                        <div className={isActive ? 'animate-pulse-subtle' : ''} style={{
-                                            fontSize: '0.625rem',
-                                            fontWeight: 800,
-                                            padding: '0.25rem 0.6rem',
-                                            borderRadius: '100px',
-                                            border: isActive ? '1px solid white' : '1px solid var(--border)',
-                                            color: isActive ? 'white' : 'var(--text-muted)',
-                                            textTransform: 'uppercase'
-                                        }}>
+                                        <div className={`badge ${isActive ? 'badge-success' : 'badge-danger'} ${isActive ? 'animate-pulse-subtle' : ''}`}>
                                             {campaign.status}
                                         </div>
                                     </div>
@@ -178,8 +235,8 @@ export default function CampaignsPage() {
                                         {campaign.description || 'Verified agent testing for decentralised applications on Base.'}
                                     </p>
 
-                                    <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, marginBottom: '2rem' }}>
-                                        Security
+                                    <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, marginBottom: '2rem', textTransform: 'uppercase' }}>
+                                        {campaign.category || 'General'}
                                     </div>
 
                                     {/* Stats Row */}
@@ -210,8 +267,14 @@ export default function CampaignsPage() {
                                             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>Completion</span>
                                             <span style={{ fontSize: '0.875rem', fontWeight: 800 }}>{Math.round(progress)}%</span>
                                         </div>
-                                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden' }}>
-                                            <div style={{ width: `${progress}%`, height: '100%', background: 'white', borderRadius: '100px' }} />
+                                        <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div style={{
+                                                width: `${progress}%`,
+                                                height: '100%',
+                                                background: progress === 100 ? 'var(--success)' : 'var(--info)',
+                                                borderRadius: '100px',
+                                                boxShadow: `0 0 10px ${progress === 100 ? 'var(--success)' : 'var(--info)'}44`
+                                            }} />
                                         </div>
                                     </div>
 
@@ -232,6 +295,28 @@ export default function CampaignsPage() {
                             </div>
                         );
                     })}
+
+                    {hasMore && (
+                        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                            <button
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className="btn"
+                                style={{
+                                    padding: '0.75rem 2rem',
+                                    borderRadius: '100px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    color: 'white',
+                                    border: '1px solid var(--border)',
+                                    fontWeight: 700,
+                                    cursor: loadingMore ? 'not-allowed' : 'pointer',
+                                    opacity: loadingMore ? 0.5 : 1
+                                }}
+                            >
+                                {loadingMore ? 'Loading...' : 'Load More Campaigns'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

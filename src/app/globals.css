@@ -20,9 +20,10 @@
   --accent-hover: #eeeeee;
   --accent-soft: rgba(255, 255, 255, 0.05);
 
-  --success: #ffffff;
-  --warning: #888888;
-  --danger: #444444;
+  --success: #00ff88;
+  --warning: #ffbb00;
+  --danger: #ff3366;
+  --info: #00ccff;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
@@ -242,6 +243,13 @@ body {
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .btn-primary::before {
   content: '';
   position: absolute;
@@ -336,21 +344,21 @@ body {
 }
 
 .badge-pending {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 187, 0, 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(255, 187, 0, 0.2);
 }
 
 .badge-success {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(0, 255, 136, 0.2);
 }
 
 .badge-danger {
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--text-muted);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 51, 102, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(255, 51, 102, 0.2);
 }
 
 /* ===== Custom Table/Grid for Admin ===== */

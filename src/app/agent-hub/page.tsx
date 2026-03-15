@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import EarningsChart from '@/components/EarningsChart';
 
 interface Agent {
     id: string;
@@ -10,6 +12,15 @@ interface Agent {
     type: string;
     reputation_score: number;
     approved_submissions: number;
+}
+
+interface UserProfile {
+    id: string;
+    user_id: string;
+    bot_slots: number;
+    reputation_milestones: number;
+    wallet_address: string;
+    role: string;
 }
 
 interface Submission {
@@ -47,6 +58,10 @@ export default function BotHubPage() {
         workingBots: 0,
         totalTasks: 0
     });
+    const [earningsHistory, setEarningsHistory] = useState<{ date: string; earned: number }[]>([]);
+    const [botSlots, setBotSlots] = useState(1);
+    const [reputationMilestones, setReputationMilestones] = useState(0);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [claimSuccess, setClaimSuccess] = useState<{ amount: number; txHash: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<boolean | string>(false);
@@ -85,6 +100,7 @@ export default function BotHubPage() {
                 localStorage.setItem('agentprobe_role', data.role);
                 setUserId(data.user_id);
                 setWalletAddress(data.wallet_address);
+                setBotSlots(data.bot_slots || 1);
                 window.dispatchEvent(new Event('storage'));
             } else {
                 alert(data.error);
@@ -93,6 +109,20 @@ export default function BotHubPage() {
             console.error('Auth failed:', err);
         }
         setAuthLoading(false);
+    }
+
+    async function handleGoogleLogin() {
+        setAuthLoading(true);
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/api/auth/callback?role=bot-hub`,
+            }
+        });
+        if (error) {
+            alert('Google login failed');
+            setAuthLoading(false);
+        }
     }
 
     const fetchHubData = useCallback(async (silent = false) => {
@@ -104,6 +134,7 @@ export default function BotHubPage() {
             if (hubRes.ok) {
                 setAgents(hubData.agents || []);
                 setActivities(hubData.activities || []);
+                setEarningsHistory(hubData.earningsHistory || []);
                 setStats(hubData.stats || {
                     totalEarnings: 0,
                     dailyEarnings: 0,
@@ -136,11 +167,40 @@ export default function BotHubPage() {
     }, []);
 
     useEffect(() => {
-        const storedId = localStorage.getItem('agentprobe_user_id');
+        const storedUserId = localStorage.getItem('agentprobe_user_id');
         const storedWallet = localStorage.getItem('agentprobe_wallet_address');
-        if (storedId && storedWallet) {
-            setUserId(storedId);
+        if (storedUserId && storedWallet) {
+            setUserId(storedUserId);
             setWalletAddress(storedWallet);
+            // Fetch latest profile data (slots, etc.)
+            fetch(`/api/profile?id=${localStorage.getItem('agentprobe_id') || storedUserId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.bot_slots) setBotSlots(data.bot_slots);
+                    if (data.reputation_milestones) setReputationMilestones(data.reputation_milestones);
+                    if (data.avatar_url) setAvatarUrl(data.avatar_url);
+                });
+        } else {
+            // Check for Supabase session
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session?.user) {
+                    fetch(`/api/profile?id=${session.user.id}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.user_id) {
+                                localStorage.setItem('agentprobe_id', data.id);
+                                localStorage.setItem('agentprobe_user_id', data.user_id);
+                                localStorage.setItem('agentprobe_wallet_address', data.wallet_address);
+                                localStorage.setItem('agentprobe_role', data.role);
+                                setUserId(data.user_id);
+                                setWalletAddress(data.wallet_address);
+                                setBotSlots(data.bot_slots || 1);
+                                setReputationMilestones(data.reputation_milestones || 0);
+                                if (data.avatar_url) setAvatarUrl(data.avatar_url);
+                            }
+                        });
+                }
+            });
         }
     }, []);
 
@@ -187,7 +247,11 @@ export default function BotHubPage() {
             });
             if (res.ok) {
                 setShowDeploy(false);
+                setNewName('');
                 await fetchHubData();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Deployment failed');
             }
         } catch (err) {
             console.error('Deployment failed:', err);
@@ -255,8 +319,34 @@ export default function BotHubPage() {
                                 required
                             />
                         </div>
-                        <button type="submit" disabled={authLoading} className="btn" style={{ background: 'white', color: 'black', width: '100%', padding: '1rem', marginTop: '1rem', fontWeight: 800, borderRadius: '12px' }}>
-                            {authLoading ? 'Authenticating...' : 'Enter Agent Hub'}
+                        <button type="submit" disabled={authLoading} className="btn" style={{ background: 'white', color: 'black', width: '100%', padding: '1rem', marginTop: '0.5rem', fontWeight: 800, borderRadius: '12px' }}>
+                            {authLoading ? 'Authenticating...' : 'Sign In with Password'}
+                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', margin: '0.5rem 0', opacity: 0.3 }}>
+                            <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                            <span style={{ fontSize: '0.625rem', fontWeight: 800 }}>OR</span>
+                            <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            disabled={authLoading}
+                            className="btn hover-lift"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                borderRadius: '12px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border)',
+                                color: 'white',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.6rem'
+                            }}
+                        >
+                            <span>G</span> {authLoading ? 'Redirecting...' : 'Continue with Google'}
                         </button>
                     </form>
                 </div>
@@ -276,16 +366,20 @@ export default function BotHubPage() {
                 <button
                     className="btn btn-primary hover-lift"
                     onClick={() => setShowDeploy(true)}
+                    disabled={stats.totalBots >= botSlots}
                     style={{
                         padding: '0.75rem 1.5rem',
                         borderRadius: '12px',
                         fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.5rem'
+                        gap: '0.5rem',
+                        opacity: stats.totalBots >= botSlots ? 0.5 : 1,
+                        cursor: stats.totalBots >= botSlots ? 'not-allowed' : 'pointer'
                     }}
                 >
-                    <span style={{ fontSize: '1.25rem' }}>+</span> Register Agent
+                    <span style={{ fontSize: '1.25rem' }}>+</span>
+                    {stats.totalBots >= botSlots ? 'Slots Full' : 'Register Agent'}
                 </button>
             </div>
 
@@ -294,8 +388,8 @@ export default function BotHubPage() {
                 <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '20px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Active Agents</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.totalBots}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>Managed Agents</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.totalBots} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ {botSlots}</span></div>
+                        <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 700, marginTop: '0.25rem' }}>Managed Agent Slots</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '12px' }}>🤖</div>
                 </div>
@@ -323,6 +417,11 @@ export default function BotHubPage() {
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '12px' }}>📈</div>
                 </div>
+            </div>
+
+            {/* Earnings Chart */}
+            <div style={{ marginBottom: '3rem' }}>
+                <EarningsChart data={earningsHistory} />
             </div>
 
             {/* Tabs */}
@@ -389,14 +488,7 @@ export default function BotHubPage() {
                                                 }
                                             })()}
                                         </div>
-                                        <div style={{
-                                            fontSize: '0.625rem',
-                                            fontWeight: 800,
-                                            padding: '0.2rem 0.5rem',
-                                            borderRadius: '6px',
-                                            background: camp.total_budget > 1000 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                                            color: camp.total_budget > 1000 ? 'white' : 'rgba(255,255,255,0.7)',
-                                        }}>
+                                        <div className={`badge ${camp.total_budget > 1000 ? 'badge-pending' : 'badge-success'}`}>
                                             {camp.total_budget > 1000 ? 'PRIORITY' : 'OPEN'}
                                         </div>
                                     </div>
@@ -428,21 +520,48 @@ export default function BotHubPage() {
                             <button onClick={() => setShowDeploy(true)} className="btn btn-secondary" style={{ marginTop: '1rem' }}>Register Your First Agent</button>
                         </div>
                     ) : (
-                        agents.map(agent => (
-                            <div key={agent.id} className="card" style={{ border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🤖</div>
-                                    <div>
-                                        <div style={{ fontWeight: 800 }}>{agent.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{agent.wallet_address.slice(0, 10)}...{agent.wallet_address.slice(-4)}</div>
+                        agents.map(agent => {
+                            const total = agent.approved_submissions + (agent.reputation_score > 0 ? Math.round(agent.approved_submissions / (agent.reputation_score / 10)) - agent.approved_submissions : 0);
+                            const score = total > 0 ? Math.round((agent.approved_submissions / Math.max(total, 1)) * 100) : 0;
+                            const tier = score >= 90 && agent.approved_submissions >= 10 ? '◆ Elite' : score >= 75 && agent.approved_submissions >= 5 ? '◇ Trusted' : score >= 50 ? '○ Established' : '· New';
+                            return (
+                                <div key={agent.id} className="card" style={{ border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', overflow: 'hidden' }}>
+                                            {avatarUrl ? (
+                                                <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                '🤖'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 800 }}>{agent.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{agent.wallet_address.slice(0, 10)}...{agent.wallet_address.slice(-4)}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                        <div style={{
+                                            fontSize: '0.6875rem',
+                                            fontWeight: 800,
+                                            padding: '0.35rem 0.75rem',
+                                            borderRadius: '100px',
+                                            background: 'rgba(255,255,255,0.08)',
+                                            border: '1px solid rgba(255,255,255,0.15)',
+                                            letterSpacing: '0.03em',
+                                        }}>
+                                            {tier} · {score}%
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.75rem',
+                                            fontWeight: 800,
+                                            color: agent.status === 'working' ? 'var(--success)' : 'var(--text-muted)'
+                                        }}>
+                                            {agent.status.toUpperCase()}
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: agent.status === 'working' ? 'white' : 'var(--text-muted)' }}>{agent.status.toUpperCase()}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Score: {agent.reputation_score}/10</div>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             )}

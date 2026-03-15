@@ -82,9 +82,30 @@ export async function GET(request: NextRequest) {
         }
     }
 
+    // Build 30-day earnings history (for chart)
+    const earningsMap: Record<string, number> = {};
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const key = `${d.getMonth() + 1}/${d.getDate()}`;
+        earningsMap[key] = 0;
+    }
+    for (const sub of typed) {
+        const isEarned = sub.status === 'paid' || sub.status === 'approved' || sub.status === 'claimed';
+        if (!isEarned) continue;
+        const subDate = new Date(sub.created_at);
+        if (subDate.getTime() >= now.getTime() - 30 * 24 * 60 * 60 * 1000) {
+            const key = `${subDate.getMonth() + 1}/${subDate.getDate()}`;
+            if (earningsMap[key] !== undefined) {
+                earningsMap[key] += sub.campaigns?.reward_per_task || 0;
+            }
+        }
+    }
+    const earningsHistory = Object.entries(earningsMap).map(([date, earned]) => ({ date, earned }));
+
     return NextResponse.json({
         agents: agents || [],
         activities: recentActivities || [],
+        earningsHistory,
         stats: {
             totalEarnings,
             dailyEarnings,

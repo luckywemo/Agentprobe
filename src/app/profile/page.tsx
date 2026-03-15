@@ -12,6 +12,7 @@ export default function ProfilePage() {
     const [walletAddress, setWalletAddress] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
@@ -67,6 +68,7 @@ export default function ProfilePage() {
 
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Profile updated successfully!' });
+                window.dispatchEvent(new Event('profileUpdated'));
             } else {
                 const data = await res.json();
                 setMessage({ type: 'error', text: data.error || 'Failed to update profile' });
@@ -75,6 +77,40 @@ export default function ProfilePage() {
             setMessage({ type: 'error', text: 'A network error occurred' });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !userId) return;
+
+        setUploading(true);
+        setMessage(null);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('userId', userId);
+
+        try {
+            const res = await fetch('/api/profile/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.url) {
+                setAvatarUrl(data.url);
+                setMessage({ type: 'success', text: 'Avatar uploaded successfully! Click Save Profile to apply.' });
+            } else {
+                setMessage({ type: 'error', text: data.error || 'Failed to upload avatar' });
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'An error occurred during upload' });
+        } finally {
+            setUploading(false);
+            // Reset input so the same file can be selected again if needed
+            if (e.target) e.target.value = '';
         }
     };
 
@@ -111,13 +147,26 @@ export default function ProfilePage() {
                 <form onSubmit={handleSave} className="space-y-8">
                     {/* Avatar Preview */}
                     <div className="flex flex-col items-center gap-4 py-4">
-                        <div className="relative group">
-                            <div className="w-32 h-32 rounded-full border-2 border-white/10 overflow-hidden bg-zinc-800 flex items-center justify-center text-4xl shadow-2xl transition-transform group-hover:scale-105">
+                        <input
+                            type="file"
+                            id="avatar-upload"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                        />
+                        <div
+                            className={`relative group cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            onClick={() => document.getElementById('avatar-upload')?.click()}
+                        >
+                            <div className="w-32 h-32 rounded-full border-2 border-white/10 overflow-hidden bg-zinc-800 flex items-center justify-center text-4xl shadow-2xl transition-all group-hover:scale-105 group-hover:border-white/30">
                                 {avatarUrl ? (
                                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                                 ) : (
                                     <span>{displayName?.[0]?.toUpperCase() || userId[0].toUpperCase()}</span>
                                 )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-white">Change</span>
+                                </div>
                             </div>
                         </div>
                         <p className="text-xs text-zinc-500 font-medium">Avatar Preview</p>
@@ -135,8 +184,20 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Avatar Image URL</label>
+                            <div className="flex justify-between items-end mb-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Avatar Image URL</label>
+                                {avatarUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setAvatarUrl('')}
+                                        className="text-[9px] font-bold text-zinc-600 hover:text-red-400 transition-colors uppercase"
+                                    >
+                                        Clear Avatar
+                                    </button>
+                                )}
+                            </div>
                             <input
+                                id="avatar-url-input"
                                 className="w-full bg-black/40 border border-zinc-800 rounded-xl px-5 py-3.5 focus:border-white/20 focus:outline-none transition-all placeholder:text-zinc-700 font-mono text-sm"
                                 placeholder="https://example.com/avatar.png"
                                 value={avatarUrl}
@@ -149,22 +210,38 @@ export default function ProfilePage() {
                                 <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Role</p>
                                 <p className="font-bold text-sm capitalize">{role.replace('-', ' ')}</p>
                             </div>
-                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
-                                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Managed Wallet</p>
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 overflow-hidden group relative">
+                                <div className="flex justify-between items-start">
+                                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Managed Wallet</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(walletAddress);
+                                            // Optional: simple toast or temporary text change
+                                        }}
+                                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                                        title="Copy to clipboard"
+                                    >
+                                        <span className="text-[10px] opacity-60">📋</span>
+                                    </button>
+                                </div>
                                 <p className="font-mono text-xs text-zinc-400 truncate">{walletAddress}</p>
                             </div>
                         </div>
                     </div>
 
                     {message && (
-                        <div className={`p-4 rounded-xl text-center text-sm font-bold animate-in ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                            {message.text}
+                        <div className={`p-4 rounded-xl text-center text-sm font-bold animate-in border ${message.type === 'success'
+                            ? 'bg-[var(--success)]/5 text-[var(--success)] border-[var(--success)]/10'
+                            : 'bg-[var(--danger)]/5 text-[var(--danger)] border-[var(--danger)]/10'
+                            }`}>
+                            {message.type === 'success' ? '✓ ' : '✕ '}{message.text}
                         </div>
                     )}
 
                     <button
                         disabled={saving}
-                        className="w-full py-4 bg-white text-black font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100"
+                        className="w-full py-4 bg-white text-black font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 shadow-xl hover:shadow-white/10"
                     >
                         {saving ? 'Saving Changes...' : 'Save Profile'}
                     </button>

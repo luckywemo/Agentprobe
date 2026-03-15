@@ -16,12 +16,17 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
         .from('users')
-        .select('id, user_id, display_name, avatar_url, role, wallet_address')
-        .eq('id', id)
+        .select('id, user_id, google_id, display_name, avatar_url, role, wallet_address, bot_slots, reputation_milestones, created_at')
+        .or(`id.eq.${id},google_id.eq.${id}`)
         .single();
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') {
+        console.error('[Profile API] Fetch error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     return NextResponse.json(data);

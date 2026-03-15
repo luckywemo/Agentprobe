@@ -30,7 +30,12 @@ export function Header() {
         };
         updateAuth();
         window.addEventListener('storage', updateAuth);
-        return () => window.removeEventListener('storage', updateAuth);
+        window.addEventListener('profileUpdated', updateAuth);
+
+        return () => {
+            window.removeEventListener('storage', updateAuth);
+            window.removeEventListener('profileUpdated', updateAuth);
+        };
     }, []);
 
     return (
@@ -41,10 +46,11 @@ export function Header() {
                     <span className="logo-text">AgentProbe</span>
                 </Link>
                 <nav className="hidden md:flex gap-2">
-                    <Link href="/dashboard" className="nav-link">Dashboard</Link>
-                    <Link href="/campaigns" className="nav-link">Campaigns</Link>
-                    <Link href="/agent-hub" className="nav-link">Agent Hub</Link>
-                    <Link href="/wallet" className="nav-link">Wallet</Link>
+                    <Link href="/dashboard" className="nav-link" onClick={() => console.log('NAV: Dashboard')}>Dashboard</Link>
+                    <Link href="/campaigns" className="nav-link" onClick={() => console.log('NAV: Campaigns')}>Campaigns</Link>
+                    <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
+                    <Link href="/agent-hub" className="nav-link" onClick={() => console.log('NAV: Agent Hub')}>Agent Hub</Link>
+                    <Link href="/wallet" className="nav-link" onClick={() => console.log('NAV: Wallet')}>Wallet</Link>
                 </nav>
                 <div className="flex items-center gap-4">
                     {userId ? (
@@ -68,6 +74,7 @@ export function Header() {
                             </Link>
                             <button
                                 onClick={() => {
+                                    console.log('LOGOUT: Clicking logout');
                                     localStorage.removeItem('agentprobe_id');
                                     localStorage.removeItem('agentprobe_user_id');
                                     localStorage.removeItem('agentprobe_wallet_address');
@@ -87,6 +94,7 @@ export function Header() {
             {/* Mobile Nav Bar underneath */}
             <div className="md:hidden flex overflow-x-auto gap-2 px-4 py-2 border-t border-zinc-900 bg-black text-sm whitespace-nowrap scrollbar-hide">
                 <Link href="/campaigns" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Marketplace</Link>
+                <Link href="/leaderboard" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Leaderboard</Link>
                 <Link href="/dashboard" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Founder</Link>
                 <Link href="/agent-hub" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Agent Hub</Link>
                 <Link href="/wallet" className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-md hover:bg-zinc-900 transition-colors">Wallet</Link>

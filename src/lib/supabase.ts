@@ -26,6 +26,7 @@ export interface Campaign {
     name: string;
     description: string;
     product_url: string;
+    category: string;
     reward_per_task: number; // in USDC (float, e.g. 0.001)
     total_budget: number;
     remaining_budget: number;
@@ -92,4 +93,21 @@ export interface TaskClaim {
     claimed_at: string;
     expires_at: string;
     status: 'active' | 'expired' | 'completed';
+}
+
+export interface User {
+    id: string;
+    user_id: string;
+    google_id: string | null;
+    email: string | null;
+    password_hash?: string;
+    role: 'founder' | 'bot-hub';
+    wallet_address: string;
+    encrypted_private_key: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    bot_slots: number;
+    slots_unlocked_at: string[];
+    reputation_milestones: number;
+    created_at: string;
 }

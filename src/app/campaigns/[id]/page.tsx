@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import type { Submission } from '@/lib/supabase';
 import CountdownTimer from '@/components/CountdownTimer';
+import LiveFeed from '@/components/LiveFeed';
 
 interface CampaignDetail {
     id: string;
@@ -30,7 +31,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
     const [submissions, setSubmissions] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'overview' | 'submissions'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'submissions' | 'live-feed'>('overview');
 
     const fetchCampaignData = async () => {
         try {
@@ -123,7 +124,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
             {/* Navigation Tabs */}
             <div className="flex overflow-x-auto gap-6 mb-10 border-b border-zinc-800 scrollbar-hide">
-                {(['overview', 'submissions'] as const).map((tab) => (
+                {(['overview', 'submissions', 'live-feed'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -245,6 +246,13 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                             </table>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Live Feed tab */}
+            {activeTab === 'live-feed' && (
+                <div className="animate-in">
+                    <LiveFeed campaignId={resolvedParams.id} />
                 </div>
             )}
         </div>

@@ -2,16 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase';
 import { triggerMatchmaking } from '@/lib/matchmaking-service';
 
-// GET /api/campaigns — List active campaigns (for agents)
+// GET /api/campaigns — List campaigns with filtering, sorting, pagination
 export async function GET(request: NextRequest) {
     const supabase = getServerSupabase();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'active';
     const founder = searchParams.get('founder');
+    const category = searchParams.get('category');
+    const sort = searchParams.get('sort') || 'newest';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
 
     let query = supabase
         .from('campaigns')
-        .select('*, tasks(*)');
+        .select('*, tasks(*)', { count: 'exact' });
 
     if (status !== 'all') {
         query = query.eq('status', status);
@@ -29,8 +33,35 @@ export async function GET(request: NextRequest) {
         query = query.eq('founder_address', founder.toLowerCase());
     }
 
-    console.log('[API] Fetching campaigns...', { status, founder });
-    const { data, error } = await query.order('created_at', { ascending: false });
+    // Category filter
+    if (category && category !== 'all') {
+        query = query.eq('category', category);
+    }
+
+    // Sorting
+    switch (sort) {
+        case 'reward_desc':
+            query = query.order('reward_per_task', { ascending: false });
+            break;
+        case 'ending_soon':
+            query = query.order('ends_at', { ascending: true, nullsFirst: false });
+            break;
+        case 'oldest':
+            query = query.order('created_at', { ascending: true });
+            break;
+        case 'newest':
+        default:
+            query = query.order('created_at', { ascending: false });
+            break;
+    }
+
+    // Pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    console.log('[API] Fetching campaigns...', { status, founder, category, sort, page, limit });
+    const { data, error, count } = await query;
 
     if (error) {
         console.error('[API] Supabase error:', error);
@@ -38,7 +69,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[API] Campaigns found:', data?.length);
-    return NextResponse.json({ campaigns: data });
+    return NextResponse.json({
+        campaigns: data,
+        total: count || 0,
+        page,
+        limit,
+    });
 }
 
 // POST /api/campaigns — Create a new campaign

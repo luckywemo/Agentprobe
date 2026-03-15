@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 interface Campaign {
     id: string;
@@ -45,8 +46,11 @@ export default function DashboardPage() {
     // Auth Form State
     const [loginInput, setLoginInput] = useState('');
     const [passwordInput, setPasswordInput] = useState('');
-    const [roleInput, setRoleInput] = useState<'founder' | 'bot-hub'>('founder');
+    const [roleInput, setRoleInput] = useState<'bot-hub' | 'founder' | null>(null);
     const [authLoading, setAuthLoading] = useState(false);
+    const [isResetMode, setIsResetMode] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetSent, setResetSent] = useState(false);
     const [onboardingStep, setOnboardingStep] = useState(1);
     const [isLoginMode, setIsLoginMode] = useState(false);
 
@@ -77,6 +81,36 @@ export default function DashboardPage() {
             }
         } catch (err) {
             console.error('Auth failed:', err);
+        }
+        setAuthLoading(false);
+    }
+
+    async function handleGoogleLogin() {
+        console.log('DASHBOARD: Starting Google Auth with role:', roleInput);
+        setAuthLoading(true);
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/api/auth/callback?role=${roleInput}`,
+            }
+        });
+        if (error) {
+            console.error('Google Auth Error:', error);
+            alert('Google login failed: ' + error.message);
+            setAuthLoading(false);
+        }
+    }
+
+    async function handleResetPassword(e: React.FormEvent) {
+        e.preventDefault();
+        setAuthLoading(true);
+        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+            redirectTo: `${window.location.origin}/dashboard/reset-password`,
+        });
+        if (error) {
+            alert('Reset error: ' + error.message);
+        } else {
+            setResetSent(true);
         }
         setAuthLoading(false);
     }
@@ -180,7 +214,7 @@ export default function DashboardPage() {
                     The Intelligence Layer for Onchain Testing
                 </p>
 
-                {!isLoginMode ? (
+                {!isLoginMode && !isResetMode ? (
                     <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem' }} className="animate-in">
                             {[1, 2, 3].map((s) => (
@@ -249,6 +283,7 @@ export default function DashboardPage() {
                                     onClick={() => setOnboardingStep(2)}
                                     className="btn btn-primary"
                                     style={{ width: '100%', padding: '1.25rem', borderRadius: '12px' }}
+                                    disabled={!roleInput}
                                 >
                                     Continue
                                 </button>
@@ -262,7 +297,35 @@ export default function DashboardPage() {
                         {onboardingStep === 2 && (
                             <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '600px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
                                 <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Secure Identity</h2>
-                                <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Create a managed account to interact with Base</p>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Authentication and managed wallet provisioning</p>
+
+                                <button
+                                    onClick={handleGoogleLogin}
+                                    disabled={authLoading}
+                                    className="btn hover-lift"
+                                    style={{
+                                        width: '100%',
+                                        padding: '1.25rem',
+                                        borderRadius: '12px',
+                                        background: 'white',
+                                        color: 'black',
+                                        fontWeight: 800,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.75rem',
+                                        marginBottom: '1.5rem'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '1.25rem' }}>G</span>
+                                    {authLoading ? 'Redirecting...' : 'Continue with Google'}
+                                </button>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', opacity: 0.3 }}>
+                                    <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>OR PRE-EXISTING ACCOUNT</span>
+                                    <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                                </div>
 
                                 <form onSubmit={async (e) => {
                                     e.preventDefault();
@@ -324,7 +387,7 @@ export default function DashboardPage() {
                             </div>
                         )}
                     </>
-                ) : (
+                ) : isLoginMode ? (
                     <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '500px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
                         <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Welcome Back</h2>
                         <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>
@@ -339,6 +402,43 @@ export default function DashboardPage() {
                             <div>
                                 <label className="form-label">Password</label>
                                 <input type="password" className="form-input" placeholder="Your password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required />
+                                <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setIsLoginMode(false); setIsResetMode(true); }}
+                                        style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                    >
+                                        Forgot Password?
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleGoogleLogin}
+                                disabled={authLoading}
+                                className="btn hover-lift"
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid var(--border)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.6rem'
+                                }}
+                            >
+                                <span>G</span> Login with Google
+                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', opacity: 0.2 }}>
+                                <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                                <span style={{ fontSize: '0.625rem' }}>OR</span>
+                                <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -387,6 +487,42 @@ export default function DashboardPage() {
                         <p style={{ marginTop: '2rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                             Need an account? <button onClick={() => setIsLoginMode(false)} style={{ color: 'white', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Create One</button>
                         </p>
+                    </div>
+                ) : (
+                    <div className="card animate-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '3.5rem', maxWidth: '500px', width: '100%', borderRadius: '24px', border: '1px solid var(--border)', backdropFilter: 'blur(10px)' }}>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.75rem' }}>Recover Access</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>
+                            {resetSent
+                                ? "Check your inbox for a magic link to reset your password."
+                                : "Enter your email to receive a secure recovery link."}
+                        </p>
+
+                        {!resetSent ? (
+                            <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left' }}>
+                                <div>
+                                    <label className="form-label">Email Address</label>
+                                    <input
+                                        type="email"
+                                        className="form-input"
+                                        placeholder="your@email.com"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                    <button type="button" onClick={() => setIsResetMode(false)} className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }}>Cancel</button>
+                                    <button type="submit" disabled={authLoading} className="btn btn-primary" style={{ flex: 2, padding: '1rem' }}>
+                                        {authLoading ? 'Sending...' : 'Send Magic Link'}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <button onClick={() => { setIsResetMode(false); setResetSent(false); }} className="btn btn-primary" style={{ width: '100%', padding: '1.25rem' }}>
+                                Back to Log In
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

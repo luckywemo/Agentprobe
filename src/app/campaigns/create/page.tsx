@@ -24,6 +24,7 @@ export default function CreateCampaignPage() {
     const [step, setStep] = useState<'form' | 'approve' | 'deposit' | 'done'>('form');
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('general');
     const [productUrl, setProductUrl] = useState('');
     const [rewardPerTask, setRewardPerTask] = useState('0.001');
     const [totalBudget, setTotalBudget] = useState('1');
@@ -138,6 +139,7 @@ export default function CreateCampaignPage() {
                     founder_address: walletAddress,
                     name,
                     description,
+                    category,
                     product_url: productUrl,
                     reward_per_task: rewardPerTask,
                     total_budget: totalBudget,
@@ -217,14 +219,30 @@ export default function CreateCampaignPage() {
                                 placeholder="e.g. Uniswap V4 Swap Flow Test"
                             />
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Product URL *</label>
-                            <input
-                                className="form-input"
-                                value={productUrl}
-                                onChange={(e) => setProductUrl(e.target.value)}
-                                placeholder="https://app.yourproduct.com"
-                            />
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                            <div className="form-group">
+                                <label className="form-label">Product URL *</label>
+                                <input
+                                    className="form-input"
+                                    value={productUrl}
+                                    onChange={(e) => setProductUrl(e.target.value)}
+                                    placeholder="https://app.yourproduct.com"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Category</label>
+                                <select
+                                    className="form-input"
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                >
+                                    <option value="general">General</option>
+                                    <option value="ux">UX Testing</option>
+                                    <option value="security">Security</option>
+                                    <option value="e2e">E2E Flow</option>
+                                    <option value="performance">Performance</option>
+                                </select>
+                            </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div className="form-group">
