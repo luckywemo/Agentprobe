@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import LeaderboardTicker from '@/components/LeaderboardTicker';
+import TransactionModal from '@/components/TransactionModal';
 
 interface LeaderboardEntry {
     id: string;
@@ -14,15 +16,19 @@ interface LeaderboardEntry {
     reputationScore: number;
     tier: string;
     successRate: number;
+    growth24h: number;
+    latestTxHash: string | null;
 }
 
 export default function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [trending, setTrending] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<'all' | 'monthly' | 'weekly'>('all');
     const [category, setCategory] = useState<'agents' | 'campaigns' | 'founders'>('agents');
     const [searchQuery, setSearchQuery] = useState('');
     const [userWallet, setUserWallet] = useState<string | null>(null);
+    const [selectedTxHash, setSelectedTxHash] = useState<string | null>(null);
 
     useEffect(() => {
         const wallet = localStorage.getItem('agentprobe_wallet_address');
@@ -37,6 +43,7 @@ export default function LeaderboardPage() {
                 const data = await res.json();
                 if (res.ok) {
                     setLeaderboard(data.leaderboard || []);
+                    setTrending(data.trending || []);
                 }
             } catch (err) {
                 console.error('Error fetching leaderboard:', err);
@@ -63,6 +70,15 @@ export default function LeaderboardPage() {
 
     return (
         <div className="min-h-screen bg-[#000000] text-white selection:bg-zinc-800 font-sans">
+            {/* Live Activity Ticker */}
+            <LeaderboardTicker />
+
+            <TransactionModal 
+                txHash={selectedTxHash || ''} 
+                onCloseAction={() => setSelectedTxHash(null)} 
+                asset="USDC"
+            />
+
             {/* Minimalist Grayscale Ambient Background */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-white/[0.03] blur-[120px] rounded-full"></div>
@@ -73,21 +89,51 @@ export default function LeaderboardPage() {
             <div className="max-w-6xl mx-auto px-6 py-16 relative z-10 flex flex-col items-center">
                 {/* Hero Section */}
                 <div className="flex flex-col items-center text-center mb-16 w-full">
-                    <div className="w-20 h-20 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-3xl border border-yellow-500/30 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(234,179,8,0.1)]">
-                        <span className="text-4xl text-yellow-400">🏆</span>
+                    <div className="w-20 h-20 bg-gradient-to-br from-zinc-800 to-black rounded-3xl border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,255,255,0.05)]">
+                        <span className="text-4xl">🏆</span>
                     </div>
-                    <h1 className="text-5xl font-extrabold tracking-tight mb-4">Leaderboard</h1>
-                    <p className="text-zinc-400 text-lg font-medium opacity-80">Top performers on AgentProbe</p>
+                    <h1 className="text-5xl font-extrabold tracking-tight mb-4 text-white">Leaderboard</h1>
+                    <div className="flex items-center gap-2 text-zinc-500 text-lg font-medium opacity-80 uppercase tracking-widest text-xs">
+                        <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                        On-Chain Verified Rankings
+                    </div>
                 </div>
+
+                {/* Trending Section */}
+                {trending.length > 0 && category === 'agents' && (
+                    <div className="w-full max-w-5xl mb-16">
+                        <div className="flex items-center gap-3 mb-6">
+                            <span className="text-xl">🔥</span>
+                            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Breakout Trending</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {trending.map(agent => (
+                                <div key={agent.id} className="bg-zinc-900/40 border border-white/5 p-5 rounded-2xl backdrop-blur-sm group hover:border-white/20 transition-all duration-500">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center text-xs">🤖</div>
+                                        <span className="font-bold text-sm truncate">{agent.name}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">24h Growth</span>
+                                        <span className="text-white font-black text-sm">+{agent.growth24h}</span>
+                                    </div>
+                                    <div className="mt-3 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-full bg-white transition-all duration-1000" style={{ width: `${Math.min(100, agent.growth24h * 10)}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Period Pill Toggle - High Contrast B&W */}
                 <div className="flex justify-center mb-12 w-full">
-                    <div className="bg-zinc-900/50 backdrop-blur-xl p-1.5 rounded-[2rem] flex items-center border border-white/10 shadow-2xl">
+                    <div className="bg-zinc-900/50 backdrop-blur-xl p-1.5 rounded-[2rem] flex items-center gap-1 border border-white/10 shadow-2xl overflow-hidden">
                         {(['all', 'monthly', 'weekly'] as const).map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPeriod(p)}
-                                className={`px-10 py-3 rounded-[1.8rem] text-sm font-bold transition-all duration-500 min-w-max ${period === p
+                                className={`px-6 md:px-10 py-3 rounded-[1.8rem] text-xs md:text-sm font-black transition-all duration-500 min-w-max ${period === p
                                     ? 'bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.15)]'
                                     : 'text-zinc-500 hover:text-zinc-300'
                                     }`}
@@ -99,7 +145,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 {/* Category Selection Tabs */}
-                <div className="bg-[#151931]/40 backdrop-blur-lg rounded-[2.5rem] border border-white/5 p-2 mb-10 flex flex-col md:flex-row shadow-2xl w-full max-w-4xl">
+                <div className="bg-zinc-900/30 backdrop-blur-lg rounded-[2.5rem] border border-white/5 p-2 mb-10 flex flex-col md:flex-row shadow-2xl w-full max-w-4xl">
                     <TabButton 
                         active={category === 'agents'} 
                         onClick={() => setCategory('agents')} 
@@ -128,6 +174,7 @@ export default function LeaderboardPage() {
                             entry={entry} 
                             rank={idx + 1} 
                             isMe={entry.walletAddress === userWallet}
+                            onShowProof={(hash) => setSelectedTxHash(hash)}
                         />
                     ))}
                 </div>
@@ -151,7 +198,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
     );
 }
 
-function RankCard({ entry, rank, isMe }: { entry: LeaderboardEntry; rank: number; isMe: boolean }) {
+function RankCard({ entry, rank, isMe, onShowProof }: { entry: LeaderboardEntry; rank: number; isMe: boolean; onShowProof: (hash: string) => void }) {
     const isTop3 = rank <= 3;
     
     // Grayscale / High Contrast B&W Theme
@@ -163,7 +210,6 @@ function RankCard({ entry, rank, isMe }: { entry: LeaderboardEntry; rank: number
     };
 
     const getRankIcon = () => {
-        const iconClass = rank === 1 ? 'grayscale brightness-0' : 'grayscale transition-all group-hover:grayscale-0';
         if (rank === 1) return <span className="text-black text-4xl font-black">1.</span>;
         if (rank === 2) return <span className="text-zinc-400 text-4xl font-black">2.</span>;
         if (rank === 3) return <span className="text-zinc-500 text-3xl font-black">3.</span>;
@@ -196,6 +242,19 @@ function RankCard({ entry, rank, isMe }: { entry: LeaderboardEntry; rank: number
 
             {/* Grayscale Metrics */}
             <div className="flex flex-wrap items-center justify-between lg:justify-end gap-x-16 gap-y-8 w-full lg:w-auto px-6">
+                {/* Proof (New Premium Feature) */}
+                <div className="flex flex-col gap-1.5">
+                    <p className={`text-[11px] font-bold ${rank === 1 ? 'text-black/40' : 'text-zinc-600'} uppercase tracking-widest`}>Proof</p>
+                    <button 
+                        disabled={!entry.latestTxHash}
+                        onClick={() => entry.latestTxHash && onShowProof(entry.latestTxHash)}
+                        className={`group/btn flex items-center gap-2 p-2 px-3 rounded-xl border transition-all ${rank === 1 ? 'border-black/20 hover:bg-black hover:text-white' : 'border-white/10 hover:bg-white/10 text-zinc-400'}`}
+                    >
+                        <span className="text-xs font-bold">{entry.latestTxHash ? 'Verified' : 'Pending'}</span>
+                        <span className="text-[10px] opacity-70">↗️</span>
+                    </button>
+                </div>
+
                 {/* Earned */}
                 <div className="flex flex-col gap-1.5">
                     <p className={`text-[11px] font-bold ${rank === 1 ? 'text-black/40' : 'text-zinc-600'} uppercase tracking-widest`}>Earned</p>
@@ -223,23 +282,16 @@ function RankCard({ entry, rank, isMe }: { entry: LeaderboardEntry; rank: number
                     </div>
                 </div>
 
-                {/* Streak */}
-                <div className="flex flex-col gap-1.5">
-                    <p className={`text-[11px] font-bold ${rank === 1 ? 'text-black/40' : 'text-zinc-600'} uppercase tracking-widest`}>Streak</p>
-                    <div className="flex items-center gap-2">
-                        <span className={`${rank === 1 ? 'text-black' : 'text-zinc-400'} text-xl opacity-50`}>⚡</span>
-                        <span className={`text-xl font-bold ${rank === 1 ? 'text-black' : 'text-white'}`}>{ Math.floor(entry.reputationScore * 1.5) } days</span>
-                    </div>
-                </div>
-
                 {/* Status Column */}
                 <div className="flex flex-col items-end gap-1 min-w-[100px]">
                     <span className={`${rank === 1 ? 'bg-black text-white' : 'bg-white/5 text-zinc-400'} text-[10px] font-bold px-3 py-1 rounded-lg border ${rank === 1 ? 'border-black' : 'border-white/10'} uppercase tracking-widest`}>
                         {entry.tier === 'trusted' ? 'Security' : entry.tier === 'established' ? 'UX/UI' : 'Integration'}
                     </span>
-                    <span className={`${rank === 1 ? 'text-black/40' : 'text-zinc-700'} text-[11px] font-medium tracking-tight`}>
-                        { (1 + (rank / 10)).toFixed(1) }h avg
-                    </span>
+                    {entry.growth24h > 0 && (
+                        <span className={`${rank === 1 ? 'text-black' : 'text-white'} text-[9px] font-black uppercase tracking-tighter bg-white/10 px-1.5 py-0.5 rounded`}>
+                            🔥 +{entry.growth24h} Today
+                        </span>
+                    )}
                 </div>
             </div>
         </div>
