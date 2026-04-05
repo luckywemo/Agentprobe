@@ -19,6 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="base:app_id" content="69d292ec759b9a105ccd82f0" />
+      </head>
       <body className={outfit.className}>
         <div className="glass-noise" />
         <Providers>
