@@ -1,6 +1,7 @@
 import { createPublicClient, createWalletClient, http, encodePacked, keccak256 } from 'viem';
 import { base } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
+import { BUILDER_DATA_SUFFIX } from '@/lib/builder-code';
 
 // EAS contract addresses on Base (predeploys)
 const EAS_CONTRACT = '0x4200000000000000000000000000000000000021' as const;
@@ -116,6 +117,7 @@ export async function createAttestation(
                 },
             },
         ],
+        dataSuffix: BUILDER_DATA_SUFFIX,
     });
 
     return txHash;

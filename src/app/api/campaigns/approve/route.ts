@@ -5,6 +5,7 @@ import { base } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 import { ERC20ABI } from '@/lib/contract-abi';
 import { CAMPAIGN_VAULT_ADDRESS, getUsdcAddress, USDC_DECIMALS } from '@/lib/config';
+import { BUILDER_DATA_SUFFIX } from '@/lib/builder-code';
 
 // Initialize Supabase admin client to read encrypted keys
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
             abi: ERC20ABI,
             functionName: 'approve',
             args: [CAMPAIGN_VAULT_ADDRESS, approveAmount],
+            dataSuffix: BUILDER_DATA_SUFFIX,
         });
 
         return NextResponse.json({ txHash, success: true });

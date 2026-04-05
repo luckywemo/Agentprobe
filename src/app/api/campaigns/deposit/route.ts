@@ -5,6 +5,7 @@ import { base } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 import { CampaignVaultABI } from '@/lib/contract-abi';
 import { CAMPAIGN_VAULT_ADDRESS, USDC_DECIMALS } from '@/lib/config';
+import { BUILDER_DATA_SUFFIX } from '@/lib/builder-code';
 
 // Initialize Supabase admin client to read encrypted keys
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
             abi: CampaignVaultABI,
             functionName: 'createCampaign',
             args: [depositParsed, rewardParsed],
+            dataSuffix: BUILDER_DATA_SUFFIX,
         });
 
         return NextResponse.json({ txHash, success: true });

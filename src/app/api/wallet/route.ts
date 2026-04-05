@@ -4,6 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { getUsdcAddress, IS_TESTNET } from '@/lib/config';
 import { getServerSupabase } from '@/lib/supabase';
+import { BUILDER_DATA_SUFFIX } from '@/lib/builder-code';
 
 /**
  * GET /api/wallet?address=0x...
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
                 account,
                 to: to as `0x${string}`,
                 value: amountWei,
+                dataSuffix: BUILDER_DATA_SUFFIX,
             });
             
             await client.waitForTransactionReceipt({ hash: txHash });
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
                 args: [to as `0x${string}`, amountBase],
             });
 
-            txHash = await client.writeContract(request);
+            txHash = await client.writeContract({ ...request, dataSuffix: BUILDER_DATA_SUFFIX });
             await client.waitForTransactionReceipt({ hash: txHash });
             
         } else {

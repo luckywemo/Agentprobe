@@ -3,6 +3,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { CampaignVaultABI } from '@/lib/contract-abi';
 import { CAMPAIGN_VAULT_ADDRESS, IS_TESTNET, getUsdcAddress } from '@/lib/config';
+import { BUILDER_DATA_SUFFIX } from '@/lib/builder-code';
 
 /**
  * getPlatformAccount
@@ -70,7 +71,7 @@ export async function processPayout(campaignId: number, agentWallet: string, sub
             args: [BigInt(campaignId), agentWallet as `0x${string}`, submissionHash],
         });
 
-        const hash = await client.writeContract(request);
+        const hash = await client.writeContract({ ...request, dataSuffix: BUILDER_DATA_SUFFIX });
 
         // Wait for transaction to be mined
         const receipt = await client.waitForTransactionReceipt({ hash });
@@ -126,7 +127,7 @@ export async function sendUsdc(to: string, amount: bigint) {
             args: [to as `0x${string}`, amount],
         });
 
-        const hash = await client.writeContract(request);
+        const hash = await client.writeContract({ ...request, dataSuffix: BUILDER_DATA_SUFFIX });
         const receipt = await client.waitForTransactionReceipt({ hash });
 
         return { success: true, txHash: hash, blockNumber: receipt.blockNumber };
@@ -159,6 +160,7 @@ export async function sendEth(to: string, amount: bigint) {
             account,
             to: to as `0x${string}`,
             value: amount,
+            dataSuffix: BUILDER_DATA_SUFFIX,
         });
 
         const receipt = await client.waitForTransactionReceipt({ hash });
