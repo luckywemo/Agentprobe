@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "AgentProbe — Onchain AI Agent Testing Platform",
   description:
     "Fund testing campaigns, let AI agents test your product, get structured feedback — all on Base with USDC payments.",
+  other: {
+    "base:app_id": "69d292ec759b9a105ccd82f0",
+  },
 };
 
 export default function RootLayout({
@@ -19,9 +22,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <meta name="base:app_id" content="69d292ec759b9a105ccd82f0" />
-      </head>
       <body className={outfit.className}>
         <div className="glass-noise" />
         <Providers>
